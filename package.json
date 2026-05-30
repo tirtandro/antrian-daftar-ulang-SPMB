@@ -1,0 +1,21 @@
+{
+  "name": "antrian-spmb",
+  "version": "1.0.0",
+  "description": "Sistem Antrian Daftar Ulang SPMB SMAN 2 Wates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "antrean",
+    "spmb",
+    "socket.io",
+    "express"
+  ],
+  "author": "Tirtandro Meda",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

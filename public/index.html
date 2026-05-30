@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sistem Antrian SPMB — SMA Negeri 2 Wates</title>
   <meta name="description" content="Sistem Antrian Daftar Ulang SPMB SMA Negeri 2 Wates TA 2026/2027" />
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     /* ===================================================
        RESET & VARIABEL CSS
@@ -1457,8 +1458,6 @@
 /* =====================================================
    KONSTANTA & KONFIGURASI
    ===================================================== */
-const STORAGE_KEY = 'antrian_spmb';
-const CHANNEL_KEY = 'antrian_spmb';
 const ADMIN_PASS  = 'admin2026';
 const HARI_INI    = () => new Date().toISOString().slice(0, 10);
 
@@ -1468,76 +1467,42 @@ const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni',
                     'Juli','Agustus','September','Oktober','November','Desember'];
 
 /* =====================================================
-   STATE MANAGEMENT — localStorage
+   SOCKET.IO CLIENT INTEGRATION
    ===================================================== */
+const socket = io();
 
-/** Kembalikan state default */
-function defaultState() {
-  return {
-    date        : HARI_INI(),
-    counter     : 0,
-    loketCount  : 6,
-    loketNames  : ['Loket 1','Loket 2','Loket 3','Loket 4','Loket 5','Loket 6'],
-    loketStatus : { 1:'SIAP', 2:'SIAP', 3:'SIAP', 4:'SIAP', 5:'SIAP', 6:'SIAP' },
-    activeQueue : { 1:null, 2:null, 3:null, 4:null, 5:null, 6:null },
-    queues      : []
-  };
-}
+// State global awal (akan diperbarui dari server)
+let state = {
+  date        : HARI_INI(),
+  counter     : 0,
+  loketCount  : 6,
+  loketNames  : ['Loket 1','Loket 2','Loket 3','Loket 4','Loket 5','Loket 6'],
+  loketStatus : { 1:'SIAP', 2:'SIAP', 3:'SIAP', 4:'SIAP', 5:'SIAP', 6:'SIAP' },
+  activeQueue : { 1:null, 2:null, 3:null, 4:null, 5:null, 6:null },
+  queues      : []
+};
 
-/** Baca state dari localStorage; reset jika tanggal berbeda */
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const st = JSON.parse(raw);
-    // Auto-reset jika hari berbeda
-    if (st.date !== HARI_INI()) {
-      console.log('[Antrian] Tanggal baru — reset otomatis.');
-      return defaultState();
-    }
-    return st;
-  } catch (e) {
-    return defaultState();
-  }
-}
-
-/** Simpan state ke localStorage */
-function saveState(st) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
-}
-
-// State global
-let state = loadState();
-
-/* =====================================================
-   BROADCAST CHANNEL — sinkronisasi antar tab
-   ===================================================== */
-let channel;
-try {
-  channel = new BroadcastChannel(CHANNEL_KEY);
-  channel.onmessage = (e) => handleBroadcast(e.data);
-} catch(e) {
-  console.warn('[Antrian] BroadcastChannel tidak tersedia:', e);
-  channel = { postMessage: () => {} };
-}
-
-/** Tangani pesan broadcast masuk */
-function handleBroadcast(msg) {
-  // Reload state dari localStorage (tab lain sudah menyimpan)
-  state = loadState();
-  // Update semua UI
+// Dengarkan pembaruan state dari server
+socket.on('state-updated', (newState) => {
+  state = newState;
   renderUI();
-  // Jika di halaman display dan ada panggilan baru, bunyikan suara
-  if (msg.type === 'QUEUE_CALLED' && halamanAktif === 'display') {
-    const q = msg.data;
-    if (q) bunyikanSuara(q.id, q.name, q.loket);
-  }
-}
+});
 
-/** Kirim pesan broadcast */
-function broadcast(type, data) {
-  try { channel.postMessage({ type, data }); } catch(e) {}
-}
+// Dengarkan instruksi panggilan suara untuk display
+socket.on('putar-suara-panggilan', (q) => {
+  if (halamanAktif === 'display' && q) {
+    bunyikanSuara(q.id, q.name, q.loket);
+  }
+});
+
+// Error handling dari server
+socket.on('ambil-antrian-error', (data) => {
+  showToast(data.message, 'bahaya');
+});
+
+socket.on('panggil-antrian-error', (data) => {
+  showToast(data.message, 'bahaya');
+});
 
 /* =====================================================
    HASH ROUTING — navigasi satu file
@@ -1613,45 +1578,8 @@ function jamSekarang() {
   return `${h}:${m} WIB`;
 }
 
-/** Algoritma load balancing: pilih loket aktif dengan beban terkecil */
-function assignLoket() {
-  // Kumpulkan loket yang SIAP atau SIBUK (tidak ISTIRAHAT)
-  const activeLokets = [];
-  for (let n = 1; n <= state.loketCount; n++) {
-    const s = state.loketStatus[n] || 'SIAP';
-    if (s !== 'ISTIRAHAT') activeLokets.push(n);
-  }
-  if (activeLokets.length === 0) return null; // Semua istirahat
-
-  // Hitung beban per loket (MENUNGGU + DIPANGGIL)
-  const loketLoad = {};
-  activeLokets.forEach(n => {
-    loketLoad[n] = state.queues.filter(q =>
-      q.loket === n &&
-      (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL')
-    ).length;
-  });
-
-  // Cari minimum load
-  const minLoad = Math.min(...activeLokets.map(n => loketLoad[n]));
-  const minLoadLokets = activeLokets.filter(n => loketLoad[n] === minLoad);
-
-  // Pilih loket dengan beban terkecil; jika seri, nomor terkecil (elemen pertama dari minLoadLokets)
-  const loketNum = minLoadLokets[0];
-
-  return {
-    loketNum,
-    minLoad,
-    minLoadLokets,
-    loketLoad
-  };
-}
-
 /** Proses ambil antrian */
 function ambilAntrian() {
-  // Muat state terbaru terlebih dahulu untuk sinkronisasi mutlak antar tab
-  state = loadState();
-
   const namaInput = document.getElementById('input-nama');
   const nopendInput = document.getElementById('input-nopend');
   const nama = namaInput.value.trim();
@@ -1666,62 +1594,16 @@ function ambilAntrian() {
     return;
   }
 
-  // Tentukan loket
-  const assignment = assignLoket();
-  if (assignment === null) {
-    showToast('Semua loket sedang istirahat. Silakan tunggu.', 'bahaya');
-    return;
-  }
-
-  const { loketNum, minLoad, minLoadLokets } = assignment;
-  const loketNama = state.loketNames[loketNum - 1] || ('Loket ' + loketNum);
-
-  // Hitung penjelasan load balancing untuk ditampilkan
-  let penjelasTeks = '';
-  if (minLoadLokets.length > 1) {
-    if (minLoad === 0) {
-      penjelasTeks = `Sistem load balancing mendeteksi ada beberapa loket kosong (${minLoadLokets.map(n => state.loketNames[n - 1] || 'Loket ' + n).join(', ')}). Anda diarahkan ke loket kosong bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
-    } else {
-      penjelasTeks = `Sistem load balancing mendeteksi beban loket aktif saat ini seimbang (masing-masing memiliki ${minLoad} antrean). Anda diarahkan ke loket aktif bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
-    }
-  } else {
-    penjelasTeks = `Sistem load balancing mendeteksi <strong>${loketNama}</strong> memiliki jumlah beban antrean paling sedikit saat ini (${minLoad} antrean). Anda otomatis dialokasikan ke loket tersebut.`;
-  }
-
-
-  // Buat nomor antrian
-  state.counter++;
-  const nomorId = 'A-' + String(state.counter).padStart(3, '0');
-  const now = new Date();
-  const timeIn = now.toTimeString().slice(0, 8);
-
-  // Buat objek antrian
-  const queueObj = {
-    id        : nomorId,
-    name      : nama,
-    regNumber : nopend || '-',
-    loket     : loketNum,
-    status    : 'MENUNGGU',
-    timeIn    : timeIn,
-    timeCalled: null,
-    timeDone  : null
-  };
-
-  state.queues.push(queueObj);
-  saveState(state);
-  broadcast('QUEUE_ADDED', queueObj);
-
-  // Hitung estimasi (berapa orang di depan di loket tsb)
-  const estimasi = state.queues.filter(q =>
-    q.loket === loketNum &&
-    (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL') &&
-    q.id !== nomorId
-  ).length;
-
-  // Tampilkan tiket (juga mengatur highlight distribusi secara atomik)
-  tampilkanTiket(queueObj, estimasi, penjelasTeks);
-  showToast(`Nomor antrian ${nomorId} berhasil diambil!`, 'sukses');
+  // Kirim ke server
+  socket.emit('ambil-antrian', { name: nama, regNumber: nopend });
 }
+
+// Tangani respon sukses ambil antrian dari server untuk pencetakan tiket lokal
+socket.on('ambil-antrian-success', (data) => {
+  const { queueObj, estimasi, penjelasTeks } = data;
+  tampilkanTiket(queueObj, estimasi, penjelasTeks);
+  showToast(`Nomor antrian ${queueObj.id} berhasil diambil!`, 'sukses');
+});
 
 /** Tampilkan tiket di layar */
 function tampilkanTiket(q, estimasi, penjelasTeks) {
@@ -1853,11 +1735,7 @@ function gantiLoket(val) {
 function toggleStatusLoket() {
   const cur = state.loketStatus[loketDipilih] || 'SIAP';
   const baru = cur === 'ISTIRAHAT' ? 'SIAP' : 'ISTIRAHAT';
-  state.loketStatus[loketDipilih] = baru;
-  saveState(state);
-  broadcast('LOKET_STATUS', { loket: loketDipilih, status: baru });
-  renderPetugas();
-  renderStatLoket();
+  socket.emit('ubah-status-loket', { loketNum: loketDipilih, status: baru });
   showToast(`Status ${state.loketNames[loketDipilih-1]} diubah ke ${baru}`);
 }
 
@@ -1946,25 +1824,12 @@ function renderPetugas() {
 /** Panggil peserta berikutnya di loket ini */
 function panggilBerikutnya() {
   const n = loketDipilih;
-  // Cari antrian MENUNGGU terdepan di loket ini
   const berikut = state.queues.find(q => q.loket === n && q.status === 'MENUNGGU');
   if (!berikut) {
     showToast('Tidak ada antrian yang menunggu di loket ini.', 'bahaya');
     return;
   }
-  // Update status
-  berikut.status    = 'DIPANGGIL';
-  berikut.timeCalled = new Date().toTimeString().slice(0, 8);
-  state.activeQueue[n] = berikut.id;
-  saveState(state);
-  broadcast('QUEUE_CALLED', berikut);
-  renderPetugas();
-  renderStatLoket();
-
-  // Bunyikan suara jika di tab yang sama (display aktif)
-  if (halamanAktif === 'display') {
-    bunyikanSuara(berikut.id, berikut.name, berikut.loket);
-  }
+  socket.emit('panggil-antrian', { loketNum: n });
   showToast(`Memanggil ${berikut.id} — ${berikut.name}`);
 }
 
@@ -1973,13 +1838,7 @@ function tandaiSelesai() {
   const n = loketDipilih;
   const aktif = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
   if (!aktif) return;
-  aktif.status  = 'SELESAI';
-  aktif.timeDone = new Date().toTimeString().slice(0, 8);
-  state.activeQueue[n] = null;
-  saveState(state);
-  broadcast('QUEUE_DONE', aktif);
-  renderPetugas();
-  renderStatLoket();
+  socket.emit('selesai-antrian', { loketNum: n });
   showToast(`${aktif.id} — ${aktif.name} selesai dilayani ✅`);
 }
 
@@ -1988,13 +1847,7 @@ function tandaiLewati() {
   const n = loketDipilih;
   const aktif = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
   if (!aktif) return;
-  aktif.status  = 'SKIP';
-  aktif.timeDone = new Date().toTimeString().slice(0, 8);
-  state.activeQueue[n] = null;
-  saveState(state);
-  broadcast('QUEUE_SKIPPED', aktif);
-  renderPetugas();
-  renderStatLoket();
+  socket.emit('lewati-antrian', { loketNum: n });
   showToast(`${aktif.id} — ${aktif.name} dilewati ⏭️`);
 }
 
@@ -2355,14 +2208,16 @@ function simpanKonfigAdmin() {
     showToast('Jumlah loket harus 1–6!', 'bahaya');
     return;
   }
-  state.loketCount = jml;
+  const namaLokets = [];
   for (let n = 1; n <= 6; n++) {
     const el = document.getElementById('admin-nama-loket-' + n);
-    if (el) state.loketNames[n - 1] = el.value.trim() || ('Loket ' + n);
+    if (el) {
+      namaLokets.push(el.value.trim() || ('Loket ' + n));
+    } else {
+      namaLokets.push('Loket ' + n);
+    }
   }
-  saveState(state);
-  broadcast('LOKET_STATUS', null); // Sinyal refresh
-  renderUI();
+  socket.emit('simpan-konfig-admin', { loketCount: jml, loketNames: namaLokets });
   tutupModal('modal-admin-panel');
   showToast('Konfigurasi berhasil disimpan ✅', 'sukses');
 }
@@ -2370,14 +2225,7 @@ function simpanKonfigAdmin() {
 /** Reset antrian harian */
 function resetAntrian() {
   if (!confirm('⚠️ Reset semua data antrian hari ini?\n\nData yang sudah ada TIDAK dapat dikembalikan.\n\nKetik OK untuk konfirmasi.')) return;
-  const baru = defaultState();
-  baru.loketCount  = state.loketCount;
-  baru.loketNames  = [...state.loketNames];
-  baru.loketStatus = { ...state.loketStatus };
-  state = baru;
-  saveState(state);
-  broadcast('LOKET_STATUS', null);
-  renderUI();
+  socket.emit('reset-antrian');
   tutupModal('modal-admin-panel');
   showToast('Antrian harian berhasil direset 🗑️', 'sukses');
 }
@@ -2446,26 +2294,7 @@ setInterval(() => {
   updateJamDisplay();
   // Render display setiap detik untuk memperbarui timer blink 8 detik
   if (halamanAktif === 'display') renderDisplay();
-  // Auto-reset jika hari berganti (cek setiap 1 detik)
-  if (state.date !== HARI_INI()) {
-    state = loadState();
-    renderUI();
-  }
 }, 1000);
-
-// Update UI setiap 5 detik (sinkronisasi antar komponen)
-setInterval(() => {
-  state = loadState();
-  renderUI();
-}, 5000);
-
-// Sinkronisasi via storage event (fallback untuk tab yang tidak mendukung BroadcastChannel)
-window.addEventListener('storage', (e) => {
-  if (e.key === STORAGE_KEY) {
-    state = loadState();
-    renderUI();
-  }
-});
 
 // Inisialisasi halaman saat DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {

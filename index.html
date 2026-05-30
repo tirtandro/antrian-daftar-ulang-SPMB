@@ -1,0 +1,2480 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Antrian SPMB — SMA Negeri 2 Wates</title>
+  <meta name="description" content="Sistem Antrian Daftar Ulang SPMB SMA Negeri 2 Wates TA 2026/2027" />
+  <style>
+    /* ===================================================
+       RESET & VARIABEL CSS
+       =================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primer:    #1a3c6e;
+      --primer-lt: #2a5298;
+      --aksen:     #f5a623;
+      --aksen-lt:  #ffc107;
+      --bg:        #f0f4f8;
+      --sukses:    #27ae60;
+      --peringatan:#f39c12;
+      --bahaya:    #e74c3c;
+      --netral:    #95a5a6;
+      --putih:     #ffffff;
+      --teks:      #2c3e50;
+      --teks-lt:   #7f8c8d;
+      --shadow:    0 4px 20px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+      --radius:    12px;
+      --radius-lg: 20px;
+      --font:      system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--teks);
+      min-height: 100vh;
+    }
+
+    /* ===================================================
+       NAVIGASI GLOBAL
+       =================================================== */
+    #nav-global {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 9999;
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      border: 2px solid var(--primer);
+      border-radius: 8px;
+      background: var(--putih);
+      color: var(--primer);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .nav-btn:hover, .nav-btn.aktif {
+      background: var(--primer);
+      color: var(--putih);
+    }
+    .nav-btn.danger { border-color: var(--bahaya); color: var(--bahaya); }
+    .nav-btn.danger:hover { background: var(--bahaya); color: var(--putih); }
+
+    /* ===================================================
+       HALAMAN (HASH ROUTING)
+       =================================================== */
+    .halaman { display: none; min-height: 100vh; }
+    .halaman.aktif { display: block; }
+
+    /* ===================================================
+       DASHBOARD 1 — AMBIL ANTRIAN
+       =================================================== */
+    #halaman-ambil {
+      background: linear-gradient(135deg, #e8f0fe 0%, #f0f4f8 100%);
+      padding: 80px 20px 40px;
+    }
+
+    .ambil-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .ambil-header .logo-sekolah {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--primer);
+      color: var(--putih);
+      padding: 16px 32px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 16px;
+    }
+    .ambil-header .logo-icon {
+      font-size: 40px;
+    }
+    .ambil-header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .ambil-header p { font-size: 14px; opacity: 0.85; }
+    .ambil-header .sub-judul {
+      font-size: 16px;
+      color: var(--primer-lt);
+      font-weight: 600;
+    }
+
+    .ambil-konten {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* Form ambil antrian */
+    .form-card {
+      background: var(--putih);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 24px;
+    }
+    .form-card h2 {
+      font-size: 20px;
+      color: var(--primer);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--teks);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e7ff;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: var(--font);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      background: #fafcff;
+    }
+    .form-group input:focus {
+      border-color: var(--primer-lt);
+      box-shadow: 0 0 0 4px rgba(42,82,152,0.1);
+      background: var(--putih);
+    }
+    .form-group input::placeholder { color: #bbb; }
+
+    .btn-ambil {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--primer) 0%, var(--primer-lt) 100%);
+      color: var(--putih);
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 6px 20px rgba(26,60,110,0.4);
+      margin-top: 4px;
+    }
+    .btn-ambil:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(26,60,110,0.5); }
+    .btn-ambil:active { transform: translateY(0); }
+
+    /* TIKET */
+    #area-tiket { display: none; }
+
+    .tiket-wrapper {
+      background: var(--putih);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .tiket-header {
+      background: linear-gradient(135deg, var(--primer) 0%, var(--primer-lt) 100%);
+      color: var(--putih);
+      text-align: center;
+      padding: 20px;
+    }
+    .tiket-header h3 { font-size: 16px; font-weight: 800; letter-spacing: 1px; }
+    .tiket-header p { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+
+    .tiket-body { padding: 28px; }
+
+    .tiket-nomor-label {
+      text-align: center;
+      font-size: 13px;
+      color: var(--teks-lt);
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .tiket-nomor {
+      text-align: center;
+      font-size: 72px;
+      font-weight: 900;
+      color: var(--primer);
+      line-height: 1;
+      margin-bottom: 24px;
+      text-shadow: 0 2px 8px rgba(26,60,110,0.15);
+      letter-spacing: -2px;
+    }
+    .tiket-loket-badge {
+      display: inline-block;
+      background: var(--aksen);
+      color: var(--primer);
+      font-weight: 900;
+      font-size: 18px;
+      padding: 6px 20px;
+      border-radius: 100px;
+      margin: 0 auto 20px;
+      display: block;
+      text-align: center;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .tiket-info-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px dashed #e8eef7;
+      font-size: 15px;
+      gap: 12px;
+    }
+    .tiket-info-row:last-child { border-bottom: none; }
+    .tiket-info-row .label { color: var(--teks-lt); width: 110px; flex-shrink: 0; font-size: 13px; }
+    .tiket-info-row .nilai { font-weight: 600; flex: 1; }
+
+    .tiket-footer {
+      background: #f8faff;
+      border-top: 2px dashed #e0e7ff;
+      padding: 16px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--primer-lt);
+      font-weight: 600;
+    }
+
+    .tiket-aksi {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .btn-cetak, .btn-reset {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid;
+      transition: all 0.2s;
+    }
+    .btn-cetak {
+      background: var(--sukses);
+      color: var(--putih);
+      border-color: var(--sukses);
+    }
+    .btn-cetak:hover { background: #219a52; }
+    .btn-reset {
+      background: transparent;
+      color: var(--primer);
+      border-color: var(--primer);
+    }
+    .btn-reset:hover { background: var(--primer); color: var(--putih); }
+
+    /* Statistik mini loket */
+    .stat-loket-wrap {
+      background: var(--putih);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .stat-loket-wrap h3 {
+      font-size: 14px;
+      color: var(--teks-lt);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stat-loket-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-loket-card {
+      background: #f8faff;
+      border: 2px solid #e0e7ff;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .stat-loket-card.istirahat {
+      background: #f5f5f5;
+      border-color: #e0e0e0;
+      opacity: 0.7;
+    }
+    .stat-loket-card .nama { font-size: 11px; font-weight: 700; color: var(--teks-lt); margin-bottom: 4px; }
+    .stat-loket-card .jumlah { font-size: 22px; font-weight: 900; color: var(--primer); }
+    .stat-loket-card .satuan { font-size: 10px; color: var(--teks-lt); }
+    .stat-loket-card.istirahat .jumlah { color: var(--netral); }
+    .badge-istirahat {
+      font-size: 9px;
+      background: var(--peringatan);
+      color: var(--putih);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-weight: 700;
+    }
+    .stat-total {
+      text-align: center;
+      font-size: 14px;
+      color: var(--teks-lt);
+      padding-top: 12px;
+      border-top: 1px solid #e8eef7;
+    }
+    .stat-total strong { color: var(--sukses); font-size: 18px; }
+
+    /* ===================================================
+       DASHBOARD 2 — LOKET PETUGAS
+       =================================================== */
+    #halaman-petugas {
+      background: #f0f4f8;
+      padding: 80px 20px 40px;
+      min-height: 100vh;
+    }
+
+    .petugas-header {
+      max-width: 800px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, var(--primer) 0%, var(--primer-lt) 100%);
+      color: var(--putih);
+      border-radius: var(--radius-lg);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-lg);
+    }
+    .petugas-header-kiri h2 { font-size: 28px; font-weight: 900; }
+    .petugas-header-kiri p { opacity: 0.8; font-size: 14px; }
+
+    .petugas-loket-select {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .petugas-loket-select label { font-weight: 600; font-size: 14px; }
+    .petugas-loket-select select {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15);
+      color: var(--putih);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+    .petugas-loket-select select option { background: var(--primer); }
+
+    .toggle-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toggle-status span { font-size: 14px; font-weight: 600; }
+    .btn-toggle-siap {
+      padding: 10px 20px;
+      border-radius: 100px;
+      border: none;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-toggle-siap.siap { background: var(--sukses); color: var(--putih); }
+    .btn-toggle-siap.istirahat { background: var(--peringatan); color: var(--putih); }
+
+    .petugas-konten {
+      max-width: 800px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Panel SEDANG DILAYANI */
+    .panel-dilayani {
+      grid-column: 1 / -1;
+      background: var(--putih);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      border-top: 6px solid var(--primer);
+    }
+    .panel-dilayani h3 {
+      font-size: 14px;
+      color: var(--teks-lt);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .nomor-aktif {
+      font-size: 100px;
+      font-weight: 900;
+      color: var(--primer);
+      line-height: 1;
+      letter-spacing: -4px;
+      margin-bottom: 8px;
+      animation: nomor-pulse 2s ease-in-out infinite;
+    }
+    @keyframes nomor-pulse {
+      0%, 100% { text-shadow: 0 0 0 rgba(26,60,110,0); transform: scale(1); }
+      50%       { text-shadow: 0 4px 20px rgba(26,60,110,0.3); transform: scale(1.02); }
+    }
+    .nama-aktif {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--teks);
+      margin-bottom: 4px;
+    }
+    .nopend-aktif {
+      font-size: 14px;
+      color: var(--teks-lt);
+      margin-bottom: 4px;
+    }
+    .waktu-aktif {
+      font-size: 13px;
+      color: var(--teks-lt);
+    }
+    .label-kosong {
+      font-size: 18px;
+      color: var(--netral);
+      padding: 24px;
+    }
+
+    /* Tombol aksi petugas */
+    .panel-aksi {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+    }
+    .btn-aksi {
+      padding: 20px 12px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      line-height: 1.3;
+      min-height: 64px;
+    }
+    .btn-aksi:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    .btn-aksi:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+    .btn-aksi:not(:disabled):active { transform: translateY(0); }
+    .btn-panggil { background: var(--sukses); color: var(--putih); }
+    .btn-selesai { background: #2980b9; color: var(--putih); }
+    .btn-lewati  { background: var(--peringatan); color: var(--putih); }
+
+    /* Info statistik loket */
+    .panel-info {
+      background: var(--putih);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .panel-info h4 {
+      font-size: 13px;
+      color: var(--teks-lt);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f4f8;
+    }
+    .info-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
+    .info-stat .angka { font-size: 28px; font-weight: 900; color: var(--primer); }
+
+    /* Tabel antrian loket */
+    .panel-antrian {
+      grid-column: 1 / -1;
+      background: var(--putih);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .panel-antrian h4 {
+      font-size: 13px;
+      color: var(--teks-lt);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .tabel-antrian {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .tabel-antrian th {
+      background: #f0f4f8;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--teks-lt);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .tabel-antrian td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; }
+    .tabel-antrian tr:last-child td { border-bottom: none; }
+    .tabel-antrian tr.aktif-row { background: #fff9e6; }
+
+    .badge-status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-MENUNGGU   { background: #e3f2fd; color: #1565c0; }
+    .badge-DIPANGGIL  { background: #fff3cd; color: #856404; }
+    .badge-SELESAI    { background: #d4edda; color: #155724; }
+    .badge-SKIP       { background: #f8d7da; color: #721c24; }
+
+    /* ===================================================
+       DASHBOARD 3 — DISPLAY PUBLIK
+       =================================================== */
+    #halaman-display {
+      background: #0d1117;
+      color: var(--putih);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .display-header {
+      background: #111827;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid var(--aksen);
+    }
+    .display-sekolah { display: flex; align-items: center; gap: 16px; }
+    .display-sekolah .ikon { font-size: 36px; }
+    .display-sekolah h1 { font-size: 18px; font-weight: 900; color: var(--putih); line-height: 1.2; }
+    .display-sekolah p { font-size: 12px; color: var(--aksen); font-weight: 600; }
+    .display-jam { text-align: right; }
+    .jam-digital { font-size: 42px; font-weight: 900; color: var(--aksen); font-variant-numeric: tabular-nums; line-height: 1; }
+    .tanggal-display { font-size: 13px; color: #8892a4; margin-top: 2px; }
+
+    /* Ticker berjalan */
+    .ticker-wrap {
+      background: var(--primer);
+      overflow: hidden;
+      padding: 10px 0;
+      border-bottom: 2px solid #1e4a8a;
+    }
+    .ticker-inner {
+      display: flex;
+      white-space: nowrap;
+      animation: ticker-scroll 35s linear infinite;
+    }
+    .ticker-inner span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--aksen-lt);
+      padding: 0 60px;
+    }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Grid loket display */
+    .display-body { padding: 20px 24px; }
+    .display-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .loket-panel {
+      background: #1c2333;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      border: 2px solid #2d3748;
+      transition: all 0.3s;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .loket-panel .nama-loket {
+      font-size: 13px;
+      font-weight: 700;
+      color: #8892a4;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .loket-panel .nomor-loket {
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -3px;
+    }
+    .loket-panel .nama-loket-panggil {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--putih);
+    }
+    .loket-panel .status-loket {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+    }
+
+    /* State loket */
+    .loket-panel.kosong { opacity: 0.4; }
+    .loket-panel.kosong .nomor-loket { font-size: 48px; color: #2d3748; }
+    .loket-panel.kosong .status-loket { background: #2d3748; color: #8892a4; }
+
+    .loket-panel.dilayani {
+      background: #0f2d1f;
+      border-color: var(--sukses);
+    }
+    .loket-panel.dilayani .nomor-loket { color: var(--sukses); }
+    .loket-panel.dilayani .status-loket { background: var(--sukses); color: var(--putih); }
+
+    .loket-panel.dipanggil {
+      animation: panel-blink 1s ease-in-out infinite;
+      border-color: var(--aksen);
+      background: #1a1500;
+    }
+    .loket-panel.dipanggil .nomor-loket { color: var(--aksen); }
+    .loket-panel.dipanggil .status-loket { background: var(--aksen); color: #1a0000; }
+
+    @keyframes panel-blink {
+      0%, 100% { background: #1a1500; box-shadow: 0 0 0 0 rgba(245,166,35,0); }
+      50%       { background: #2a1f00; box-shadow: 0 0 30px 6px rgba(245,166,35,0.25); }
+    }
+
+    .loket-panel.istirahat { opacity: 0.5; }
+    .loket-panel.istirahat .status-loket { background: var(--peringatan); color: var(--putih); }
+    .loket-panel.istirahat .nomor-loket { color: var(--peringatan); font-size: 36px; }
+
+    /* Riwayat panggilan */
+    .riwayat-wrap {
+      background: #1c2333;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .riwayat-wrap h3 {
+      font-size: 13px;
+      color: #8892a4;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .riwayat-tabel {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .riwayat-tabel th {
+      color: #4a5568;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      text-align: left;
+    }
+    .riwayat-tabel td {
+      padding: 8px 12px;
+      border-top: 1px solid #2d3748;
+      color: #e2e8f0;
+    }
+    .riwayat-tabel tr:first-child td {
+      color: var(--aksen);
+      font-weight: 700;
+    }
+
+    /* Panel suara (pengaturan) */
+    .panel-suara-toggle {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--primer);
+      color: var(--putih);
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s;
+      z-index: 100;
+    }
+    .panel-suara-toggle:hover { background: var(--primer-lt); transform: rotate(30deg); }
+
+    .panel-suara {
+      position: fixed;
+      bottom: 76px;
+      right: 16px;
+      background: #1c2333;
+      border: 2px solid #2d3748;
+      border-radius: var(--radius);
+      padding: 20px;
+      width: 300px;
+      display: none;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+    }
+    .panel-suara.tampil { display: block; }
+    .panel-suara h4 { color: var(--aksen); font-size: 14px; margin-bottom: 16px; font-weight: 700; }
+    .panel-suara label { color: #8892a4; font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
+    .panel-suara input[type="range"] { width: 100%; margin-bottom: 14px; }
+    .panel-suara select {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0d1117;
+      color: var(--putih);
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .btn-tes-suara {
+      width: 100%;
+      padding: 10px;
+      background: var(--primer-lt);
+      color: var(--putih);
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-tes-suara:hover { background: var(--primer); }
+
+    /* Aktivasi suara overlay */
+    .overlay-suara {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+    }
+    .overlay-suara.sembunyi { display: none; }
+    .overlay-suara-box {
+      background: #1c2333;
+      border: 3px solid var(--aksen);
+      border-radius: 20px;
+      padding: 48px;
+      text-align: center;
+      max-width: 380px;
+    }
+    .overlay-suara-box .ikon { font-size: 64px; margin-bottom: 20px; }
+    .overlay-suara-box h2 { color: var(--putih); font-size: 24px; margin-bottom: 12px; }
+    .overlay-suara-box p { color: #8892a4; font-size: 15px; margin-bottom: 28px; line-height: 1.5; }
+    .btn-aktifkan-suara {
+      background: var(--aksen);
+      color: var(--primer);
+      border: none;
+      padding: 16px 40px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-aktifkan-suara:hover { background: var(--aksen-lt); transform: scale(1.04); }
+
+    /* ===================================================
+       MODAL ADMIN
+       =================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 8000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.tampil { display: flex; }
+    .modal-box {
+      background: var(--putih);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .modal-box h2 { color: var(--primer); font-size: 22px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+    .modal-box h3 { color: var(--teks); font-size: 16px; margin: 20px 0 12px; font-weight: 700; }
+    .modal-btn-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--teks-lt);
+    }
+    .modal-btn-close:hover { color: var(--bahaya); }
+    .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .admin-loket-item { display: flex; flex-direction: column; gap: 6px; }
+    .admin-loket-item label { font-size: 12px; font-weight: 700; color: var(--teks-lt); }
+    .admin-loket-item input {
+      padding: 8px 12px;
+      border: 2px solid #e0e7ff;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: var(--font);
+    }
+    .admin-loket-item input:focus { outline: none; border-color: var(--primer-lt); }
+    .admin-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .admin-row label { font-weight: 600; font-size: 14px; min-width: 180px; }
+    .admin-row input[type="number"], .admin-row select {
+      padding: 8px 12px;
+      border: 2px solid #e0e7ff;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 120px;
+    }
+    .btn-admin {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      margin-right: 8px;
+      margin-top: 4px;
+    }
+    .btn-admin.primer { background: var(--primer); color: var(--putih); }
+    .btn-admin.primer:hover { background: var(--primer-lt); }
+    .btn-admin.bahaya { background: var(--bahaya); color: var(--putih); }
+    .btn-admin.bahaya:hover { background: #c0392b; }
+    .btn-admin.sukses { background: var(--sukses); color: var(--putih); }
+    .btn-admin.sukses:hover { background: #219a52; }
+    .btn-admin.netral { background: #ecf0f1; color: var(--teks); }
+    .btn-admin.netral:hover { background: #dfe6e9; }
+
+    /* Login admin */
+    #modal-admin-login .modal-box { max-width: 380px; text-align: center; }
+    #modal-admin-login input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #e0e7ff;
+      border-radius: 10px;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 4px;
+      font-family: var(--font);
+      margin: 12px 0 20px;
+    }
+    #modal-admin-login input:focus { outline: none; border-color: var(--primer-lt); }
+    .error-login { color: var(--bahaya); font-size: 14px; margin-bottom: 12px; }
+
+    /* ===================================================
+       PRINT STYLES
+       =================================================== */
+    @media print {
+      body > *:not(#cetak-tiket) { display: none !important; }
+      #cetak-tiket { display: block !important; }
+      .tiket-wrapper { box-shadow: none; max-width: 340px; margin: 0 auto; }
+    }
+    #cetak-tiket { display: none; }
+    #cetak-tiket .tiket-wrapper { max-width: 340px; margin: 20px auto; }
+
+    /* ===================================================
+       UTILITY
+       =================================================== */
+    .text-center { text-align: center; }
+    .mt-16 { margin-top: 16px; }
+    .divider { height: 1px; background: #e8eef7; margin: 20px 0; }
+    .link-admin {
+      display: block;
+      text-align: right;
+      color: var(--teks-lt);
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+      text-decoration: underline;
+    }
+    .link-admin:hover { color: var(--primer); }
+
+    /* Toast notifikasi */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--primer);
+      color: var(--putih);
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      animation: toast-in 0.3s ease-out;
+      pointer-events: all;
+    }
+    .toast.sukses { background: var(--sukses); }
+    .toast.bahaya { background: var(--bahaya); }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsif */
+    @media (max-width: 640px) {
+      .petugas-konten { grid-template-columns: 1fr; }
+      .panel-aksi { grid-template-columns: 1fr; }
+      .panel-dilayani { grid-column: 1; }
+      .panel-antrian { grid-column: 1; }
+      .nomor-aktif { font-size: 72px; }
+      .display-grid { grid-template-columns: repeat(2, 1fr); }
+      .loket-panel .nomor-loket { font-size: 56px; }
+      .petugas-header { flex-direction: column; align-items: flex-start; }
+      .stat-loket-grid { grid-template-columns: repeat(2, 1fr); }
+      .admin-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Highlight Target Loket & Info Alokasi */
+    .stat-loket-card.target-loket {
+      background: #e0f2fe;
+      border-color: var(--primer-lt);
+      box-shadow: 0 0 15px rgba(42,82,152,0.15);
+      position: relative;
+      animation: target-pulse 2s ease-in-out infinite;
+      transform: scale(1.02);
+    }
+    @keyframes target-pulse {
+      0%, 100% { border-color: var(--primer-lt); box-shadow: 0 0 12px rgba(42,82,152,0.15); }
+      50%       { border-color: var(--aksen); box-shadow: 0 0 20px rgba(245,166,35,0.3); }
+    }
+    .badge-target {
+      font-size: 9px;
+      background: var(--aksen);
+      color: var(--primer);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-weight: 800;
+      margin-left: 4px;
+      display: inline-block;
+      vertical-align: middle;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .info-alokasi-card {
+      background: #f0f7ff;
+      border: 1px solid #cce3ff;
+      border-left: 5px solid var(--primer-lt);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #1e3a8a;
+      line-height: 1.5;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+      text-align: left;
+    }
+    .info-alokasi-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: var(--primer);
+    }
+    .info-alokasi-header .info-icon {
+      font-size: 16px;
+    }
+
+    /* Floating navigation dock on display page to avoid overlapping the clock */
+    body.page-display #nav-global {
+      position: fixed;
+      top: auto;
+      bottom: 16px;
+      left: 16px;
+      right: auto;
+      background: rgba(28, 35, 51, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #2d3748;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      gap: 6px;
+    }
+    body.page-display .nav-btn {
+      background: #0d1117;
+      border-color: #2d3748;
+      color: #8892a4;
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    body.page-display .nav-btn:hover, body.page-display .nav-btn.aktif {
+      background: var(--aksen);
+      color: #1a1500;
+      border-color: var(--aksen);
+    }
+    body.page-display .nav-btn.danger {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    body.page-display .nav-btn.danger:hover {
+      background: #ef4444;
+      color: var(--putih);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===================================================
+     NAVIGASI GLOBAL (pojok kanan atas)
+     =================================================== -->
+<nav id="nav-global" aria-label="Navigasi dashboard">
+  <button class="nav-btn" id="nav-ambil"   onclick="navigasi('ambil')">📋 Ambil Antrian</button>
+  <button class="nav-btn" id="nav-petugas" onclick="navigasi('petugas')">🖥️ Loket Petugas</button>
+  <button class="nav-btn" id="nav-display" onclick="navigasi('display')">📺 Display Publik</button>
+  <button class="nav-btn danger" id="nav-admin" onclick="bukaLoginAdmin()" title="Admin Panel">⚙</button>
+</nav>
+
+<!-- Kontainer toast notifikasi -->
+<div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+<!-- ===================================================
+     AREA CETAK TIKET (hanya untuk print)
+     =================================================== -->
+<div id="cetak-tiket"></div>
+
+<!-- ===================================================
+     HALAMAN 1 — AMBIL ANTRIAN
+     =================================================== -->
+<section id="halaman-ambil" class="halaman" role="main" aria-label="Ambil nomor antrian">
+
+  <!-- Header / Judul -->
+  <div class="ambil-header">
+    <div class="logo-sekolah">
+      <div class="logo-icon">🏫</div>
+      <div>
+        <h1>SMA NEGERI 2 WATES</h1>
+        <p>Daftar Ulang SPMB — Tahun Ajaran 2026/2027</p>
+      </div>
+    </div>
+    <p class="sub-judul">Sistem Antrian Daftar Ulang SPMB</p>
+  </div>
+
+  <div class="ambil-konten">
+
+    <!-- Form pengisian -->
+    <div class="form-card" id="area-form">
+      <h2>📝 Ambil Nomor Antrian</h2>
+      <div class="form-group">
+        <label for="input-nama">Nama Lengkap <span style="color:var(--bahaya)">*</span></label>
+        <input type="text" id="input-nama" placeholder="Masukkan nama lengkap Anda" autocomplete="name"
+               onkeydown="if(event.key==='Enter')ambilAntrian()" />
+      </div>
+      <div class="form-group">
+        <label for="input-nopend">Nomor Pendaftaran SPMB</label>
+        <input type="text" id="input-nopend" placeholder="Contoh: 2025-1234 (opsional)"
+               onkeydown="if(event.key==='Enter')ambilAntrian()" />
+      </div>
+      <button class="btn-ambil" id="tombol-ambil" onclick="ambilAntrian()" aria-label="Ambil nomor antrian">
+        🎟️ AMBIL NOMOR ANTRIAN
+      </button>
+      <a class="link-admin" onclick="bukaLoginAdmin()">Panel Admin</a>
+    </div>
+
+    <!-- Area tiket -->
+    <div id="area-tiket">
+      <div class="tiket-wrapper" id="tiket-display">
+        <div class="tiket-header">
+          <h3>🏫 SMA NEGERI 2 WATES</h3>
+          <p>Daftar Ulang SPMB — Tahun Ajaran 2026/2027</p>
+        </div>
+        <div class="tiket-body">
+          <div class="tiket-nomor-label">NOMOR ANTRIAN</div>
+          <div class="tiket-nomor" id="tiket-nomor">—</div>
+          <div class="tiket-loket-badge" id="tiket-loket-badge">LOKET —</div>
+          <div class="tiket-info-row">
+            <span class="label">Nama</span>
+            <span class="nilai" id="tiket-nama">—</span>
+          </div>
+          <div class="tiket-info-row">
+            <span class="label">No. Pendaftaran</span>
+            <span class="nilai" id="tiket-nopend">—</span>
+          </div>
+          <div class="tiket-info-row">
+            <span class="label">Loket Tujuan</span>
+            <span class="nilai" id="tiket-loket-nama">—</span>
+          </div>
+          <div class="tiket-info-row">
+            <span class="label">Waktu</span>
+            <span class="nilai" id="tiket-waktu">—</span>
+          </div>
+          <div class="tiket-info-row">
+            <span class="label">Estimasi antrean</span>
+            <span class="nilai" id="tiket-estimasi">—</span>
+          </div>
+        </div>
+        <div class="tiket-footer" id="tiket-footer">
+          Silakan menuju area tunggu —
+        </div>
+      </div>
+      <!-- Penjelasan Alokasi Loket (Load Balancing Info) -->
+      <div class="info-alokasi-card" id="info-alokasi-card" style="display:none">
+        <div class="info-alokasi-header">
+          <span class="info-icon">ℹ️</span>
+          <strong>Distribusi Antrean Otomatis</strong>
+        </div>
+        <div class="info-alokasi-body" id="info-alokasi-teks">
+          Loket tujuan ditentukan otomatis menggunakan algoritma load balancing berdasarkan jumlah beban antrean tersedikit.
+        </div>
+      </div>
+      <div class="tiket-aksi">
+        <button class="btn-cetak" onclick="cetakTiket()" id="tombol-cetak">🖨️ Cetak Tiket</button>
+        <button class="btn-reset" onclick="resetForm()" id="tombol-reset">🔄 Antrian Baru</button>
+      </div>
+    </div>
+
+    <!-- Statistik loket live -->
+    <div class="stat-loket-wrap" id="stat-loket-wrap">
+      <h3>📊 Status Loket Saat Ini</h3>
+      <div class="stat-loket-grid" id="stat-loket-grid">
+        <!-- Diisi oleh JavaScript -->
+      </div>
+      <div class="stat-total">
+        Total selesai hari ini: <strong id="stat-total-selesai">0</strong> orang
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================================================
+     HALAMAN 2 — LOKET PETUGAS
+     =================================================== -->
+<section id="halaman-petugas" class="halaman" role="main" aria-label="Dasbor loket petugas">
+
+  <!-- Header petugas -->
+  <div class="petugas-header">
+    <div class="petugas-header-kiri">
+      <h2 id="petugas-judul-loket">🖥️ LOKET —</h2>
+      <p>SMA Negeri 2 Wates — Daftar Ulang SPMB 2026/2027</p>
+    </div>
+    <div class="petugas-loket-select">
+      <label for="pilih-loket">Pilih Loket:</label>
+      <select id="pilih-loket" onchange="gantiLoket(this.value)" aria-label="Pilih nomor loket">
+        <!-- Diisi JavaScript -->
+      </select>
+    </div>
+    <div class="toggle-status">
+      <span>Status:</span>
+      <button class="btn-toggle-siap siap" id="btn-toggle-status" onclick="toggleStatusLoket()" aria-label="Toggle status loket">
+        SIAP
+      </button>
+    </div>
+  </div>
+
+  <div class="petugas-konten" id="petugas-konten">
+
+    <!-- Panel nomor sedang dilayani -->
+    <div class="panel-dilayani" id="panel-dilayani">
+      <h3 id="panel-dilayani-judul">LOKET — — SEDANG MELAYANI</h3>
+      <div id="panel-aktif-konten" class="label-kosong">Belum ada yang dipanggil</div>
+    </div>
+
+    <!-- Tombol aksi -->
+    <div class="panel-aksi">
+      <button class="btn-aksi btn-panggil" id="btn-panggil" onclick="panggilBerikutnya()" aria-label="Panggil peserta berikutnya">
+        📢 PANGGIL<br>BERIKUTNYA
+      </button>
+      <button class="btn-aksi btn-selesai" id="btn-selesai" onclick="tandaiSelesai()" aria-label="Tandai selesai">
+        ✅ SELESAI
+      </button>
+      <button class="btn-aksi btn-lewati" id="btn-lewati" onclick="tandaiLewati()" aria-label="Lewati / skip">
+        ⏭️ LEWATI /<br>SKIP
+      </button>
+    </div>
+
+    <!-- Info statistik loket ini -->
+    <div class="panel-info">
+      <h4>📊 Statistik Loket Ini</h4>
+      <div class="info-stat">
+        <span>Menunggu di loket ini</span>
+        <span class="angka" id="p-menunggu">0</span>
+      </div>
+      <div class="info-stat">
+        <span>Sudah selesai hari ini</span>
+        <span class="angka" id="p-selesai">0</span>
+      </div>
+    </div>
+
+    <!-- Statistik umum -->
+    <div class="panel-info">
+      <h4>📋 Semua Loket</h4>
+      <div class="info-stat">
+        <span>Total antrian hari ini</span>
+        <span class="angka" id="p-total-antrian">0</span>
+      </div>
+      <div class="info-stat">
+        <span>Total selesai</span>
+        <span class="angka" id="p-total-selesai">0</span>
+      </div>
+    </div>
+
+    <!-- Tabel antrian loket ini -->
+    <div class="panel-antrian">
+      <h4>📃 Antrian Loket Ini</h4>
+      <div id="tabel-antrian-wrap">
+        <table class="tabel-antrian">
+          <thead>
+            <tr>
+              <th>No. Antrian</th>
+              <th>Nama</th>
+              <th>No. Daftar</th>
+              <th>Status</th>
+              <th>Waktu Masuk</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-antrian">
+            <tr><td colspan="5" style="text-align:center;color:var(--teks-lt);padding:20px">Pilih loket terlebih dahulu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================================================
+     HALAMAN 3 — DISPLAY PUBLIK
+     =================================================== -->
+<section id="halaman-display" class="halaman" role="main" aria-label="Display publik ruang tunggu">
+
+  <!-- Overlay aktivasi suara -->
+  <div class="overlay-suara" id="overlay-suara" role="dialog" aria-modal="true" aria-labelledby="overlay-suara-judul">
+    <div class="overlay-suara-box">
+      <div class="ikon">🔊</div>
+      <h2 id="overlay-suara-judul">Aktifkan Suara</h2>
+      <p>Klik tombol di bawah untuk mengaktifkan notifikasi suara otomatis saat peserta dipanggil.</p>
+      <button class="btn-aktifkan-suara" id="btn-aktifkan-suara" onclick="aktifkanSuara()">
+        🔊 Aktifkan Suara
+      </button>
+    </div>
+  </div>
+
+  <!-- Header display -->
+  <div class="display-header">
+    <div class="display-sekolah">
+      <div class="ikon">🏫</div>
+      <div>
+        <h1>SMA NEGERI 2 WATES</h1>
+        <p>Daftar Ulang SPMB — TA 2026/2027</p>
+      </div>
+    </div>
+    <div class="display-jam">
+      <div class="jam-digital" id="jam-digital" aria-live="polite" aria-label="Jam saat ini">00:00:00</div>
+      <div class="tanggal-display" id="tanggal-display">—</div>
+    </div>
+  </div>
+
+  <!-- Ticker berjalan -->
+  <div class="ticker-wrap" aria-hidden="true">
+    <div class="ticker-inner">
+      <span>🎓 Selamat Datang di Daftar Ulang SPMB SMA Negeri 2 Wates — Tahun Ajaran 2026/2027 &nbsp;|&nbsp; Harap bersabar dan tertib &nbsp;|&nbsp; Ikuti petunjuk petugas &nbsp;|&nbsp; Terima kasih atas kehadiran Anda</span>
+      <span>🎓 Selamat Datang di Daftar Ulang SPMB SMA Negeri 2 Wates — Tahun Ajaran 2026/2027 &nbsp;|&nbsp; Harap bersabar dan tertib &nbsp;|&nbsp; Ikuti petunjuk petugas &nbsp;|&nbsp; Terima kasih atas kehadiran Anda</span>
+    </div>
+  </div>
+
+  <!-- Body display: grid loket -->
+  <div class="display-body">
+    <div class="display-grid" id="display-grid">
+      <!-- Diisi JavaScript -->
+    </div>
+
+    <!-- Riwayat 5 panggilan terakhir -->
+    <div class="riwayat-wrap">
+      <h3>🕐 Riwayat Panggilan Terakhir</h3>
+      <table class="riwayat-tabel">
+        <thead>
+          <tr>
+            <th>No. Antrian</th>
+            <th>Nama</th>
+            <th>Loket</th>
+            <th>Waktu Dipanggil</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-riwayat">
+          <tr><td colspan="4" style="text-align:center;color:#4a5568;padding:16px">Belum ada panggilan</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tombol pengaturan suara -->
+  <button class="panel-suara-toggle" onclick="togglePanelSuara()" title="Pengaturan Suara" aria-label="Buka pengaturan suara">⚙</button>
+  <div class="panel-suara" id="panel-suara">
+    <h4>🔊 Pengaturan Suara</h4>
+    <div id="info-voice-terpilih" style="background:#0d1117;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;line-height:1.6">
+      ⏳ Memuat suara...
+    </div>
+    <label>Volume</label>
+    <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="1" oninput="updateSuara()">
+    <label>Kecepatan Bicara</label>
+    <input type="range" id="slider-rate" min="0.5" max="1.5" step="0.05" value="0.85" oninput="updateSuara()">
+    <label>Pilihan Suara (Prioritas Indonesia 🇮🇩)</label>
+    <select id="pilih-voice" onchange="updateSuara()" style="margin-bottom:14px"></select>
+    <button class="btn-tes-suara" onclick="tesSuara()">🔈 Tes Suara Indonesia</button>
+  </div>
+
+</section>
+
+<!-- ===================================================
+     MODAL LOGIN ADMIN
+     =================================================== -->
+<div class="modal-overlay" id="modal-admin-login" role="dialog" aria-modal="true" aria-labelledby="login-admin-judul">
+  <div class="modal-box" style="max-width:380px;text-align:center">
+    <button class="modal-btn-close" onclick="tutupModal('modal-admin-login')" aria-label="Tutup">✕</button>
+    <h2 id="login-admin-judul" style="justify-content:center">🔐 Login Admin</h2>
+    <p style="color:var(--teks-lt);font-size:14px;margin-bottom:8px">Masukkan kata sandi admin</p>
+    <input type="password" id="input-password-admin" placeholder="Kata sandi admin"
+           onkeydown="if(event.key==='Enter')cekPasswordAdmin()" aria-label="Kata sandi admin" />
+    <div class="error-login" id="error-login" style="display:none">Kata sandi salah. Coba lagi.</div>
+    <button class="btn-ambil" style="font-size:16px;padding:14px" onclick="cekPasswordAdmin()">Masuk</button>
+  </div>
+</div>
+
+<!-- ===================================================
+     MODAL PANEL ADMIN
+     =================================================== -->
+<div class="modal-overlay" id="modal-admin-panel" role="dialog" aria-modal="true" aria-labelledby="panel-admin-judul">
+  <div class="modal-box">
+    <button class="modal-btn-close" onclick="tutupModal('modal-admin-panel')" aria-label="Tutup">✕</button>
+    <h2 id="panel-admin-judul">⚙️ Panel Admin</h2>
+
+    <!-- Jumlah loket aktif -->
+    <h3>Jumlah Loket Aktif</h3>
+    <div class="admin-row">
+      <label for="admin-jumlah-loket">Jumlah loket (1–6):</label>
+      <input type="number" id="admin-jumlah-loket" min="1" max="6" value="6" oninput="updateNamaLoketAdmin()" />
+    </div>
+
+    <!-- Nama tiap loket -->
+    <h3>Nama Loket</h3>
+    <div class="admin-grid" id="admin-loket-grid">
+      <!-- Diisi JavaScript -->
+    </div>
+
+    <!-- Tombol simpan konfigurasi -->
+    <button class="btn-admin primer" onclick="simpanKonfigAdmin()">💾 Simpan Konfigurasi</button>
+
+    <div class="divider"></div>
+
+    <!-- Reset antrian -->
+    <h3>Reset Antrian</h3>
+    <p style="font-size:14px;color:var(--teks-lt);margin-bottom:12px">
+      Menghapus semua data antrian hari ini. Data tidak dapat dikembalikan.
+    </p>
+    <button class="btn-admin bahaya" onclick="resetAntrian()">🗑️ Reset Antrian Harian</button>
+
+    <div class="divider"></div>
+
+    <!-- Export CSV -->
+    <h3>Export Data</h3>
+    <p style="font-size:14px;color:var(--teks-lt);margin-bottom:12px">
+      Download semua data antrian hari ini dalam format CSV.
+    </p>
+    <button class="btn-admin sukses" onclick="exportCSV()">📥 Export CSV</button>
+
+    <div class="divider"></div>
+
+    <!-- Info -->
+    <div style="font-size:13px;color:var(--teks-lt);text-align:center">
+      Sistem Antrian SPMB v1.0 — SMA Negeri 2 Wates
+    </div>
+  </div>
+</div>
+
+
+<!-- ===================================================
+     JAVASCRIPT UTAMA
+     =================================================== -->
+<script>
+
+/* =====================================================
+   KONSTANTA & KONFIGURASI
+   ===================================================== */
+const STORAGE_KEY = 'antrian_spmb';
+const CHANNEL_KEY = 'antrian_spmb';
+const ADMIN_PASS  = 'admin2026';
+const HARI_INI    = () => new Date().toISOString().slice(0, 10);
+
+// Nama hari dan bulan Bahasa Indonesia
+const NAMA_HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const NAMA_BULAN = ['Januari','Februari','Maret','April','Mei','Juni',
+                    'Juli','Agustus','September','Oktober','November','Desember'];
+
+/* =====================================================
+   STATE MANAGEMENT — localStorage
+   ===================================================== */
+
+/** Kembalikan state default */
+function defaultState() {
+  return {
+    date        : HARI_INI(),
+    counter     : 0,
+    loketCount  : 6,
+    loketNames  : ['Loket 1','Loket 2','Loket 3','Loket 4','Loket 5','Loket 6'],
+    loketStatus : { 1:'SIAP', 2:'SIAP', 3:'SIAP', 4:'SIAP', 5:'SIAP', 6:'SIAP' },
+    activeQueue : { 1:null, 2:null, 3:null, 4:null, 5:null, 6:null },
+    queues      : []
+  };
+}
+
+/** Baca state dari localStorage; reset jika tanggal berbeda */
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const st = JSON.parse(raw);
+    // Auto-reset jika hari berbeda
+    if (st.date !== HARI_INI()) {
+      console.log('[Antrian] Tanggal baru — reset otomatis.');
+      return defaultState();
+    }
+    return st;
+  } catch (e) {
+    return defaultState();
+  }
+}
+
+/** Simpan state ke localStorage */
+function saveState(st) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+}
+
+// State global
+let state = loadState();
+
+/* =====================================================
+   BROADCAST CHANNEL — sinkronisasi antar tab
+   ===================================================== */
+let channel;
+try {
+  channel = new BroadcastChannel(CHANNEL_KEY);
+  channel.onmessage = (e) => handleBroadcast(e.data);
+} catch(e) {
+  console.warn('[Antrian] BroadcastChannel tidak tersedia:', e);
+  channel = { postMessage: () => {} };
+}
+
+/** Tangani pesan broadcast masuk */
+function handleBroadcast(msg) {
+  // Reload state dari localStorage (tab lain sudah menyimpan)
+  state = loadState();
+  // Update semua UI
+  renderUI();
+  // Jika di halaman display dan ada panggilan baru, bunyikan suara
+  if (msg.type === 'QUEUE_CALLED' && halamanAktif === 'display') {
+    const q = msg.data;
+    if (q) bunyikanSuara(q.id, q.name, q.loket);
+  }
+}
+
+/** Kirim pesan broadcast */
+function broadcast(type, data) {
+  try { channel.postMessage({ type, data }); } catch(e) {}
+}
+
+/* =====================================================
+   HASH ROUTING — navigasi satu file
+   ===================================================== */
+let halamanAktif = '';
+let currentTicketLoket = null; // Menyimpan loket tujuan tiket yang baru saja diambil
+
+/** Buka halaman berdasarkan nama */
+function navigasi(nama) {
+  // Sembunyikan semua halaman
+  document.querySelectorAll('.halaman').forEach(el => el.classList.remove('aktif'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('aktif'));
+
+  // Tampilkan halaman yang dipilih
+  const el = document.getElementById('halaman-' + nama);
+  const btn = document.getElementById('nav-' + nama);
+  if (el) el.classList.add('aktif');
+  if (btn) btn.classList.add('aktif');
+
+  halamanAktif = nama;
+  window.location.hash = nama;
+
+  // Set class pada body untuk scope styling halaman
+  document.body.className = 'page-' + nama;
+
+  // Render ulang sesuai halaman
+  renderUI();
+
+  // Halaman display: tampilkan overlay suara jika belum diaktifkan
+  if (nama === 'display' && !suaraAktif) {
+    document.getElementById('overlay-suara').classList.remove('sembunyi');
+  }
+  // Halaman petugas: inisialisasi dropdown loket
+  if (nama === 'petugas') {
+    renderDropdownLoket();
+    renderPetugas();
+  }
+}
+
+/** Inisialisasi routing dari hash URL */
+function initRouting() {
+  const hash = window.location.hash.replace('#', '') || 'ambil';
+  navigasi(['ambil','petugas','display'].includes(hash) ? hash : 'ambil');
+}
+
+// Dengarkan perubahan hash (tombol back/forward browser)
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '') || 'ambil';
+  if (['ambil','petugas','display'].includes(hash)) navigasi(hash);
+});
+
+/* =====================================================
+   RENDER UI — update semua tampilan
+   ===================================================== */
+function renderUI() {
+  // Selalu render statistik loket (karena muncul di halaman ambil)
+  renderStatLoket();
+  // Halaman petugas
+  if (halamanAktif === 'petugas') renderPetugas();
+  // Halaman display
+  if (halamanAktif === 'display') renderDisplay();
+}
+
+/* =====================================================
+   HALAMAN 1 — AMBIL ANTRIAN
+   ===================================================== */
+
+/** Format jam saat ini HH:MM WIB */
+function jamSekarang() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m} WIB`;
+}
+
+/** Algoritma load balancing: pilih loket aktif dengan beban terkecil */
+function assignLoket() {
+  // Kumpulkan loket yang SIAP atau SIBUK (tidak ISTIRAHAT)
+  const activeLokets = [];
+  for (let n = 1; n <= state.loketCount; n++) {
+    const s = state.loketStatus[n] || 'SIAP';
+    if (s !== 'ISTIRAHAT') activeLokets.push(n);
+  }
+  if (activeLokets.length === 0) return null; // Semua istirahat
+
+  // Hitung beban per loket (MENUNGGU + DIPANGGIL)
+  const loketLoad = {};
+  activeLokets.forEach(n => {
+    loketLoad[n] = state.queues.filter(q =>
+      q.loket === n &&
+      (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL')
+    ).length;
+  });
+
+  // Cari minimum load
+  const minLoad = Math.min(...activeLokets.map(n => loketLoad[n]));
+  const minLoadLokets = activeLokets.filter(n => loketLoad[n] === minLoad);
+
+  // Pilih loket dengan beban terkecil; jika seri, nomor terkecil (elemen pertama dari minLoadLokets)
+  const loketNum = minLoadLokets[0];
+
+  return {
+    loketNum,
+    minLoad,
+    minLoadLokets,
+    loketLoad
+  };
+}
+
+/** Proses ambil antrian */
+function ambilAntrian() {
+  // Muat state terbaru terlebih dahulu untuk sinkronisasi mutlak antar tab
+  state = loadState();
+
+  const namaInput = document.getElementById('input-nama');
+  const nopendInput = document.getElementById('input-nopend');
+  const nama = namaInput.value.trim();
+  const nopend = nopendInput.value.trim();
+
+  // Validasi nama
+  if (!nama) {
+    namaInput.focus();
+    showToast('Nama lengkap wajib diisi!', 'bahaya');
+    namaInput.style.borderColor = 'var(--bahaya)';
+    setTimeout(() => { namaInput.style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  // Tentukan loket
+  const assignment = assignLoket();
+  if (assignment === null) {
+    showToast('Semua loket sedang istirahat. Silakan tunggu.', 'bahaya');
+    return;
+  }
+
+  const { loketNum, minLoad, minLoadLokets } = assignment;
+  const loketNama = state.loketNames[loketNum - 1] || ('Loket ' + loketNum);
+
+  // Hitung penjelasan load balancing untuk ditampilkan
+  let penjelasTeks = '';
+  if (minLoadLokets.length > 1) {
+    if (minLoad === 0) {
+      penjelasTeks = `Sistem load balancing mendeteksi ada beberapa loket kosong (${minLoadLokets.map(n => state.loketNames[n - 1] || 'Loket ' + n).join(', ')}). Anda diarahkan ke loket kosong bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
+    } else {
+      penjelasTeks = `Sistem load balancing mendeteksi beban loket aktif saat ini seimbang (masing-masing memiliki ${minLoad} antrean). Anda diarahkan ke loket aktif bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
+    }
+  } else {
+    penjelasTeks = `Sistem load balancing mendeteksi <strong>${loketNama}</strong> memiliki jumlah beban antrean paling sedikit saat ini (${minLoad} antrean). Anda otomatis dialokasikan ke loket tersebut.`;
+  }
+
+
+  // Buat nomor antrian
+  state.counter++;
+  const nomorId = 'A-' + String(state.counter).padStart(3, '0');
+  const now = new Date();
+  const timeIn = now.toTimeString().slice(0, 8);
+
+  // Buat objek antrian
+  const queueObj = {
+    id        : nomorId,
+    name      : nama,
+    regNumber : nopend || '-',
+    loket     : loketNum,
+    status    : 'MENUNGGU',
+    timeIn    : timeIn,
+    timeCalled: null,
+    timeDone  : null
+  };
+
+  state.queues.push(queueObj);
+  saveState(state);
+  broadcast('QUEUE_ADDED', queueObj);
+
+  // Hitung estimasi (berapa orang di depan di loket tsb)
+  const estimasi = state.queues.filter(q =>
+    q.loket === loketNum &&
+    (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL') &&
+    q.id !== nomorId
+  ).length;
+
+  // Tampilkan tiket (juga mengatur highlight distribusi secara atomik)
+  tampilkanTiket(queueObj, estimasi, penjelasTeks);
+  showToast(`Nomor antrian ${nomorId} berhasil diambil!`, 'sukses');
+}
+
+/** Tampilkan tiket di layar */
+function tampilkanTiket(q, estimasi, penjelasTeks) {
+  // ★ SUMBER TUNGGAL: loket diambil langsung dari q.loket
+  //   badge tiket + highlight grid + teks penjelasan semuanya dari nilai yang sama
+  const loketNama = state.loketNames[q.loket - 1] || ('Loket ' + q.loket);
+
+  document.getElementById('tiket-nomor').textContent   = q.id;
+  document.getElementById('tiket-nama').textContent    = q.name;
+  document.getElementById('tiket-nopend').textContent  = q.regNumber;
+  document.getElementById('tiket-loket-badge').textContent = loketNama.toUpperCase();
+  document.getElementById('tiket-loket-nama').textContent  = loketNama;
+  document.getElementById('tiket-waktu').textContent   = jamSekarang();
+  document.getElementById('tiket-estimasi').textContent = estimasi + ' orang di depan Anda';
+  document.getElementById('tiket-footer').textContent  = `Silakan menuju area tunggu ${loketNama}`;
+
+  // Sembunyikan form, tampilkan tiket
+  document.getElementById('area-form').style.display = 'none';
+  document.getElementById('area-tiket').style.display = 'block';
+  document.getElementById('info-alokasi-card').style.display = 'block';
+
+  // Set teks penjelasan alokasi
+  if (penjelasTeks !== undefined) {
+    document.getElementById('info-alokasi-teks').innerHTML = penjelasTeks;
+  }
+
+  // ★ ATOMIK: set currentTicketLoket dari q.loket yang sama dengan badge di atas
+  currentTicketLoket = q.loket;
+
+  // ★ Render grid distribusi SETELAH badge diset — dijamin sinkron
+  renderStatLoket();
+
+  // Siapkan cetak (salin elemen dan hapus ID untuk menghindari duplikasi DOM)
+  const cetakTkt = document.getElementById('cetak-tiket');
+  if (cetakTkt) {
+    const clone = document.getElementById('tiket-display').cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    cetakTkt.innerHTML = '';
+    cetakTkt.appendChild(clone);
+  }
+}
+
+/** Reset form untuk peserta berikutnya */
+function resetForm() {
+  document.getElementById('input-nama').value = '';
+  document.getElementById('input-nopend').value = '';
+  document.getElementById('area-form').style.display = 'block';
+  document.getElementById('area-tiket').style.display = 'none';
+  document.getElementById('info-alokasi-card').style.display = 'none';
+  document.getElementById('input-nama').focus();
+  
+  // Bersihkan cetak-tiket untuk menghindari sisa element
+  const cetakTkt = document.getElementById('cetak-tiket');
+  if (cetakTkt) {
+    cetakTkt.innerHTML = '';
+  }
+
+  currentTicketLoket = null;
+  renderStatLoket();
+}
+
+/** Cetak tiket (hanya area tiket) */
+function cetakTiket() {
+  window.print();
+}
+
+/** Render statistik loket di halaman ambil */
+function renderStatLoket() {
+  const grid = document.getElementById('stat-loket-grid');
+  if (!grid) return;
+  let html = '';
+  for (let n = 1; n <= state.loketCount; n++) {
+    const status = state.loketStatus[n] || 'SIAP';
+    const nama   = state.loketNames[n - 1] || ('Loket ' + n);
+    const menunggu = state.queues.filter(q =>
+      q.loket === n && (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL')
+    ).length;
+    const istirahat = status === 'ISTIRAHAT';
+    
+    // Cek apakah loket ini adalah loket tujuan tiket yang baru diambil
+    const isTarget = (halamanAktif === 'ambil' && currentTicketLoket === n);
+    const targetClass = isTarget ? 'target-loket' : '';
+    
+    html += `
+      <div class="stat-loket-card ${istirahat ? 'istirahat' : ''} ${targetClass}">
+        <div class="nama">
+          ${nama} 
+          ${istirahat ? '<span class="badge-istirahat">ISTIRAHAT</span>' : ''}
+          ${isTarget ? '<span class="badge-target">LOKET ANDA</span>' : ''}
+        </div>
+        <div class="jumlah">${istirahat ? '–' : menunggu}</div>
+        <div class="satuan">${istirahat ? 'tidak aktif' : (isTarget ? 'menunggu (termasuk Anda)' : 'menunggu')}</div>
+      </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Total selesai
+  const selesai = state.queues.filter(q => q.status === 'SELESAI').length;
+  const el = document.getElementById('stat-total-selesai');
+  if (el) el.textContent = selesai;
+}
+
+/* =====================================================
+   HALAMAN 2 — LOKET PETUGAS
+   ===================================================== */
+
+let loketDipilih = 1; // Nomor loket yang aktif di dashboard petugas
+
+/** Render dropdown pilih loket */
+function renderDropdownLoket() {
+  const sel = document.getElementById('pilih-loket');
+  if (!sel) return;
+  let html = '';
+  for (let n = 1; n <= state.loketCount; n++) {
+    const nama = state.loketNames[n - 1] || ('Loket ' + n);
+    html += `<option value="${n}" ${n === loketDipilih ? 'selected' : ''}>${nama}</option>`;
+  }
+  sel.innerHTML = html;
+}
+
+/** Ganti loket yang dipilih petugas */
+function gantiLoket(val) {
+  loketDipilih = parseInt(val);
+  renderPetugas();
+}
+
+/** Toggle status loket (SIAP ↔ ISTIRAHAT) */
+function toggleStatusLoket() {
+  const cur = state.loketStatus[loketDipilih] || 'SIAP';
+  const baru = cur === 'ISTIRAHAT' ? 'SIAP' : 'ISTIRAHAT';
+  state.loketStatus[loketDipilih] = baru;
+  saveState(state);
+  broadcast('LOKET_STATUS', { loket: loketDipilih, status: baru });
+  renderPetugas();
+  renderStatLoket();
+  showToast(`Status ${state.loketNames[loketDipilih-1]} diubah ke ${baru}`);
+}
+
+/** Render seluruh dashboard petugas */
+function renderPetugas() {
+  const n     = loketDipilih;
+  const nama  = state.loketNames[n - 1] || ('Loket ' + n);
+  const status = state.loketStatus[n] || 'SIAP';
+
+  // Judul header
+  document.getElementById('petugas-judul-loket').textContent = `🖥️ ${nama.toUpperCase()}`;
+  document.getElementById('panel-dilayani-judul').textContent = `${nama.toUpperCase()} — SEDANG MELAYANI`;
+
+  // Tombol toggle status
+  const btnToggle = document.getElementById('btn-toggle-status');
+  btnToggle.textContent = status;
+  btnToggle.className   = 'btn-toggle-siap ' + (status === 'ISTIRAHAT' ? 'istirahat' : 'siap');
+
+  // Antrian loket ini
+  const antrianLoket = state.queues.filter(q => q.loket === n);
+  const menunggu     = antrianLoket.filter(q => q.status === 'MENUNGGU');
+  const dipanggil    = antrianLoket.filter(q => q.status === 'DIPANGGIL');
+  const selesai      = antrianLoket.filter(q => q.status === 'SELESAI' || q.status === 'SKIP');
+
+  // Cek yang sedang dipanggil/dilayani di loket ini
+  const aktif = dipanggil[0] || null;
+
+  // Panel sedang dilayani
+  const panelKonten = document.getElementById('panel-aktif-konten');
+  if (aktif) {
+    panelKonten.innerHTML = `
+      <div class="nomor-aktif">${aktif.id}</div>
+      <div class="nama-aktif">${aktif.name}</div>
+      <div class="nopend-aktif">No. Pendaftaran: ${aktif.regNumber}</div>
+      <div class="waktu-aktif">Dipanggil: ${aktif.timeCalled || '—'} WIB</div>`;
+  } else {
+    panelKonten.innerHTML = '<div class="label-kosong">Belum ada yang dipanggil</div>';
+  }
+
+  // Tombol PANGGIL BERIKUTNYA
+  const btnPanggil = document.getElementById('btn-panggil');
+  const adaDipanggil = dipanggil.length > 0;
+  const antrianKosong = menunggu.length === 0;
+  btnPanggil.disabled = adaDipanggil || antrianKosong || status === 'ISTIRAHAT';
+  if (antrianKosong && !adaDipanggil) {
+    btnPanggil.innerHTML = '📭 Antrean<br>Loket Kosong';
+  } else {
+    btnPanggil.innerHTML = '📢 PANGGIL<br>BERIKUTNYA';
+  }
+
+  // Tombol SELESAI & LEWATI
+  const btnSelesai = document.getElementById('btn-selesai');
+  const btnLewati  = document.getElementById('btn-lewati');
+  btnSelesai.disabled = !aktif;
+  btnLewati.disabled  = !aktif;
+
+  // Statistik loket ini
+  document.getElementById('p-menunggu').textContent = menunggu.length;
+  document.getElementById('p-selesai').textContent  = selesai.length;
+
+  // Statistik global
+  const totalAntrian = state.queues.length;
+  const totalSelesai = state.queues.filter(q => q.status === 'SELESAI').length;
+  document.getElementById('p-total-antrian').textContent = totalAntrian;
+  document.getElementById('p-total-selesai').textContent = totalSelesai;
+
+  // Tabel antrian loket ini
+  const tbody = document.getElementById('tbody-antrian');
+  if (antrianLoket.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--teks-lt);padding:20px">Antrean loket ini kosong</td></tr>';
+  } else {
+    tbody.innerHTML = antrianLoket.map(q => `
+      <tr class="${q.status === 'DIPANGGIL' ? 'aktif-row' : ''}">
+        <td><strong>${q.id}</strong></td>
+        <td>${q.name}</td>
+        <td>${q.regNumber}</td>
+        <td><span class="badge-status badge-${q.status}">${q.status}</span></td>
+        <td>${q.timeIn}</td>
+      </tr>`).join('');
+  }
+
+  // Sinkronkan dropdown
+  renderDropdownLoket();
+}
+
+/** Panggil peserta berikutnya di loket ini */
+function panggilBerikutnya() {
+  const n = loketDipilih;
+  // Cari antrian MENUNGGU terdepan di loket ini
+  const berikut = state.queues.find(q => q.loket === n && q.status === 'MENUNGGU');
+  if (!berikut) {
+    showToast('Tidak ada antrian yang menunggu di loket ini.', 'bahaya');
+    return;
+  }
+  // Update status
+  berikut.status    = 'DIPANGGIL';
+  berikut.timeCalled = new Date().toTimeString().slice(0, 8);
+  state.activeQueue[n] = berikut.id;
+  saveState(state);
+  broadcast('QUEUE_CALLED', berikut);
+  renderPetugas();
+  renderStatLoket();
+
+  // Bunyikan suara jika di tab yang sama (display aktif)
+  if (halamanAktif === 'display') {
+    bunyikanSuara(berikut.id, berikut.name, berikut.loket);
+  }
+  showToast(`Memanggil ${berikut.id} — ${berikut.name}`);
+}
+
+/** Tandai peserta aktif selesai */
+function tandaiSelesai() {
+  const n = loketDipilih;
+  const aktif = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
+  if (!aktif) return;
+  aktif.status  = 'SELESAI';
+  aktif.timeDone = new Date().toTimeString().slice(0, 8);
+  state.activeQueue[n] = null;
+  saveState(state);
+  broadcast('QUEUE_DONE', aktif);
+  renderPetugas();
+  renderStatLoket();
+  showToast(`${aktif.id} — ${aktif.name} selesai dilayani ✅`);
+}
+
+/** Tandai peserta aktif dilewati (skip) */
+function tandaiLewati() {
+  const n = loketDipilih;
+  const aktif = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
+  if (!aktif) return;
+  aktif.status  = 'SKIP';
+  aktif.timeDone = new Date().toTimeString().slice(0, 8);
+  state.activeQueue[n] = null;
+  saveState(state);
+  broadcast('QUEUE_SKIPPED', aktif);
+  renderPetugas();
+  renderStatLoket();
+  showToast(`${aktif.id} — ${aktif.name} dilewati ⏭️`);
+}
+
+/* =====================================================
+   HALAMAN 3 — DISPLAY PUBLIK
+   ===================================================== */
+
+// Tracker kapan tiap loket terakhir dipanggil (untuk timer 8 detik blink)
+const blinkTimers = {};
+
+/** Render grid loket di display publik */
+function renderDisplay() {
+  const grid = document.getElementById('display-grid');
+  if (!grid) return;
+  let html = '';
+  for (let n = 1; n <= state.loketCount; n++) {
+    const status    = state.loketStatus[n] || 'SIAP';
+    const nama      = state.loketNames[n - 1] || ('Loket ' + n);
+    const dipanggil = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
+
+    let kelas = 'kosong';
+    let nomorTampil = '—';
+    let namaTampil  = '';
+    let badgeTeks   = 'KOSONG';
+
+    if (status === 'ISTIRAHAT') {
+      kelas = 'istirahat';
+      nomorTampil = '☕';
+      badgeTeks   = 'ISTIRAHAT';
+    } else if (dipanggil) {
+      // Cek sudah berapa lama dipanggil (blink 8 detik, lalu dilayani)
+      const calledAt = dipanggil.timeCalled || '';
+      const nowStr   = new Date().toTimeString().slice(0, 8);
+      const selisihDetik = calledAt ? waktsDiff(calledAt, nowStr) : 0;
+      if (selisihDetik < 8) {
+        kelas = 'dipanggil';
+        badgeTeks = 'DIPANGGIL!';
+      } else {
+        kelas = 'dilayani';
+        badgeTeks = 'DILAYANI';
+      }
+      nomorTampil = dipanggil.id;
+      namaTampil  = dipanggil.name;
+    }
+
+    html += `
+      <div class="loket-panel ${kelas}" id="loket-panel-${n}">
+        <div class="nama-loket">${nama}</div>
+        <div class="nomor-loket">${nomorTampil}</div>
+        ${namaTampil ? `<div class="nama-loket-panggil">${namaTampil}</div>` : ''}
+        <div class="status-loket">${badgeTeks}</div>
+      </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Render riwayat panggilan (5 terakhir)
+  renderRiwayat();
+}
+
+/** Hitung selisih detik antara dua waktu format HH:MM:SS */
+function waktsDiff(awal, akhir) {
+  try {
+    const [ah, am, as2] = awal.split(':').map(Number);
+    const [bh, bm, bs2] = akhir.split(':').map(Number);
+    const a = ah * 3600 + am * 60 + as2;
+    const b = bh * 3600 + bm * 60 + bs2;
+    return Math.max(0, b - a);
+  } catch (e) { return 0; }
+}
+
+/** Render 5 panggilan terakhir */
+function renderRiwayat() {
+  const tbody = document.getElementById('tbody-riwayat');
+  if (!tbody) return;
+  const panggilan = state.queues
+    .filter(q => q.timeCalled)
+    .sort((a, b) => (b.timeCalled || '').localeCompare(a.timeCalled || ''))
+    .slice(0, 5);
+
+  if (panggilan.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#4a5568;padding:16px">Belum ada panggilan</td></tr>';
+    return;
+  }
+  tbody.innerHTML = panggilan.map(q => {
+    const loketNama = state.loketNames[q.loket - 1] || ('Loket ' + q.loket);
+    return `
+      <tr>
+        <td>${q.id}</td>
+        <td>${q.name}</td>
+        <td>${loketNama}</td>
+        <td>${q.timeCalled || '—'}</td>
+      </tr>`;
+  }).join('');
+}
+
+/** Update jam digital di display */
+function updateJamDisplay() {
+  const el = document.getElementById('jam-digital');
+  const tgl = document.getElementById('tanggal-display');
+  if (!el) return;
+  const d = new Date();
+  const h  = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  const se = String(d.getSeconds()).padStart(2,'0');
+  el.textContent = `${h}:${mi}:${se}`;
+
+  if (tgl) {
+    const hari = NAMA_HARI[d.getDay()];
+    const tglNum = d.getDate();
+    const bln  = NAMA_BULAN[d.getMonth()];
+    const thn  = d.getFullYear();
+    tgl.textContent = `${hari}, ${tglNum} ${bln} ${thn} WIB`;
+  }
+}
+
+/* =====================================================
+   SUARA — Web Speech API
+   ===================================================== */
+let suaraAktif   = false;
+let voicesDaftar = [];
+let suaraDipilih = null;   // Objek SpeechSynthesisVoice yang dipilih
+let volSuara     = 1.0;
+let rateSuara    = 0.85;
+
+/**
+ * Urutan prioritas pencarian suara perempuan Indonesia:
+ * 1. Microsoft Gadis (Edge/Windows — suara Indonesia alami perempuan)
+ * 2. Google Bahasa Indonesia (Chrome — perempuan)
+ * 3. Semua voice id-ID lainnya
+ * 4. Semua voice id-* lainnya
+ * 5. Fallback: suara default browser
+ */
+const PRIORITAS_VOICE_WANITA = [
+  // Kata kunci nama voice perempuan Indonesia (case-insensitive)
+  'gadis',          // Microsoft Gadis (Edge)
+  'google bahasa',  // Google Bahasa Indonesia (Chrome)
+  'indonesian',     // Beberapa TTS pihak ketiga
+  'indonesia',
+];
+
+/** Pilih suara Indonesia perempuan terbaik yang tersedia */
+function pilihVoiceIndonesia(voices) {
+  const idVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('id'));
+  if (idVoices.length === 0) return voices.find(v => v.lang && v.lang.startsWith('id')) || null;
+
+  // Coba cocokkan prioritas
+  for (const kata of PRIORITAS_VOICE_WANITA) {
+    const cocok = idVoices.find(v => v.name.toLowerCase().includes(kata));
+    if (cocok) return cocok;
+  }
+  // Fallback: ambil voice id-ID pertama
+  return idVoices.find(v => v.lang === 'id-ID') || idVoices[0];
+}
+
+/** Muat daftar suara dan pilih yang terbaik */
+function muatVoices() {
+  voicesDaftar = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+
+  // Pilih suara Indonesia perempuan otomatis
+  suaraDipilih = pilihVoiceIndonesia(voicesDaftar);
+
+  // Tampilkan indikator suara yang terpilih di UI
+  tampilkanInfoVoice();
+
+  // Isi dropdown — hanya tampilkan voice bahasa Indonesia terlebih dahulu,
+  // lalu semua voice lainnya sebagai fallback
+  const sel = document.getElementById('pilih-voice');
+  if (!sel) return;
+
+  const idVoices  = voicesDaftar.filter(v => v.lang && v.lang.toLowerCase().startsWith('id'));
+  const othVoices = voicesDaftar.filter(v => !v.lang || !v.lang.toLowerCase().startsWith('id'));
+
+  let html = '';
+
+  if (idVoices.length > 0) {
+    html += '<optgroup label="🇮🇩 Bahasa Indonesia">';
+    idVoices.forEach((v) => {
+      const idx     = voicesDaftar.indexOf(v);
+      const terpilih = v === suaraDipilih ? 'selected' : '';
+      const label   = tandaiGender(v.name);
+      html += `<option value="${idx}" ${terpilih}>${label} (${v.lang})</option>`;
+    });
+    html += '</optgroup>';
+  }
+
+  if (othVoices.length > 0) {
+    html += '<optgroup label="🌐 Bahasa Lain (Fallback)">';
+    othVoices.forEach((v) => {
+      const idx = voicesDaftar.indexOf(v);
+      html += `<option value="${idx}">${v.name} (${v.lang})</option>`;
+    });
+    html += '</optgroup>';
+  }
+
+  sel.innerHTML = html || '<option value="">Tidak ada suara tersedia</option>';
+}
+
+/** Tambahkan ikon gender berdasarkan nama voice */
+function tandaiGender(nama) {
+  const n = nama.toLowerCase();
+  // Indikator perempuan
+  if (/gadis|female|woman|girl|putri|dewi|sari|wanita/.test(n)) return '👩 ' + nama;
+  // Indikator laki-laki
+  if (/pria|male|man|boy|putra|wahyu|andika/.test(n)) return '👨 ' + nama;
+  // Google Bahasa Indonesia → perempuan
+  if (n.includes('google bahasa indonesia')) return '👩 ' + nama;
+  return '🔊 ' + nama;
+}
+
+/** Tampilkan info voice yang terpilih di panel suara */
+function tampilkanInfoVoice() {
+  const el = document.getElementById('info-voice-terpilih');
+  if (!el) return;
+  if (suaraDipilih) {
+    const gender = /gadis|female|woman|google bahasa/i.test(suaraDipilih.name) ? '👩 Perempuan' : '🔊 Terdeteksi';
+    el.innerHTML = `<span style="color:#4ade80">✅ ${suaraDipilih.name}</span><br><small style="color:#8892a4">${suaraDipilih.lang} · ${gender}</small>`;
+  } else {
+    el.innerHTML = '<span style="color:#f59e0b">⚠️ Suara Indonesia tidak ditemukan — menggunakan default</span>';
+  }
+}
+
+// Voices mungkin belum tersedia saat halaman dimuat (Chrome lazy-load)
+if (window.speechSynthesis) {
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = muatVoices;
+  }
+  // Coba segera, dan coba lagi setelah 300ms & 1000ms (Chrome kadang butuh waktu)
+  muatVoices();
+  setTimeout(muatVoices, 300);
+  setTimeout(muatVoices, 1000);
+}
+
+/** Aktifkan suara (diperlukan karena autoplay policy browser) */
+function aktifkanSuara() {
+  suaraAktif = true;
+  document.getElementById('overlay-suara').classList.add('sembunyi');
+
+  // Pastikan voices sudah dimuat
+  muatVoices();
+
+  // Ucapkan kalimat singkat untuk membuka izin audio
+  const u = new SpeechSynthesisUtterance('Sistem antrian siap.');
+  u.lang   = 'id-ID';
+  u.rate   = rateSuara;
+  u.pitch  = 1.1;
+  u.volume = 0.5;
+  if (suaraDipilih) u.voice = suaraDipilih;
+  window.speechSynthesis && window.speechSynthesis.speak(u);
+
+  showToast(`Suara aktif: ${suaraDipilih ? suaraDipilih.name : 'Default'} 🔊`, 'sukses');
+}
+
+/** Update konfigurasi suara dari slider & dropdown */
+function updateSuara() {
+  volSuara  = parseFloat(document.getElementById('slider-volume').value);
+  rateSuara = parseFloat(document.getElementById('slider-rate').value);
+  const idx = document.getElementById('pilih-voice').value;
+  if (idx !== '' && idx !== undefined) {
+    suaraDipilih = voicesDaftar[parseInt(idx)] || null;
+  }
+  tampilkanInfoVoice();
+}
+
+/** Bunyikan panggilan (diucapkan 2 kali, jeda 2,5 detik antar pengulangan) */
+function bunyikanSuara(nomor, nama, loketNum) {
+  if (!suaraAktif || !window.speechSynthesis) return;
+  const loketNama = state.loketNames[loketNum - 1] || ('Loket ' + loketNum);
+  const teks = `Nomor antrian ${nomor}, atas nama ${nama}, silakan menuju ${loketNama}.`;
+
+  // Ucapkan pertama kali segera
+  ucapkan(teks);
+  // Ucapkan kedua kali setelah jeda 2,5 detik (setelah ucapan pertama selesai)
+  setTimeout(() => ucapkan(teks), 3500);
+}
+
+/** Ucapkan teks menggunakan Web Speech API */
+function ucapkan(teks) {
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(teks);
+  u.lang   = 'id-ID';
+  u.rate   = rateSuara;
+  u.pitch  = 1.2;   // Pitch lebih tinggi → suara lebih feminin
+  u.volume = volSuara;
+  if (suaraDipilih) u.voice = suaraDipilih;
+  window.speechSynthesis.speak(u);
+}
+
+/** Tes suara dari panel pengaturan — contoh pengumuman nyata */
+function tesSuara() {
+  updateSuara();
+  if (!suaraAktif) suaraAktif = true;
+  const teksUji = 'Nomor antrian A-001, atas nama Budi Santoso, silakan menuju Loket 1.';
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  ucapkan(teksUji);
+}
+
+/** Toggle panel pengaturan suara */
+function togglePanelSuara() {
+  document.getElementById('panel-suara').classList.toggle('tampil');
+}
+
+/* =====================================================
+   MODAL ADMIN
+   ===================================================== */
+let adminLogin = false;
+
+/** Buka modal login admin */
+function bukaLoginAdmin() {
+  adminLogin = false;
+  document.getElementById('input-password-admin').value = '';
+  document.getElementById('error-login').style.display = 'none';
+  bukaModal('modal-admin-login');
+  setTimeout(() => document.getElementById('input-password-admin').focus(), 100);
+}
+
+/** Cek password admin */
+function cekPasswordAdmin() {
+  const pass = document.getElementById('input-password-admin').value;
+  if (pass === ADMIN_PASS) {
+    adminLogin = true;
+    tutupModal('modal-admin-login');
+    bukaPanelAdmin();
+  } else {
+    document.getElementById('error-login').style.display = 'block';
+    document.getElementById('input-password-admin').value = '';
+    document.getElementById('input-password-admin').focus();
+  }
+}
+
+/** Buka panel admin */
+function bukaPanelAdmin() {
+  // Isi field konfigurasi
+  document.getElementById('admin-jumlah-loket').value = state.loketCount;
+  updateNamaLoketAdmin();
+  bukaModal('modal-admin-panel');
+}
+
+/** Update grid nama loket di admin */
+function updateNamaLoketAdmin() {
+  const jml = parseInt(document.getElementById('admin-jumlah-loket').value) || 6;
+  const grid = document.getElementById('admin-loket-grid');
+  let html = '';
+  for (let n = 1; n <= Math.min(jml, 6); n++) {
+    const nama = state.loketNames[n - 1] || ('Loket ' + n);
+    html += `
+      <div class="admin-loket-item">
+        <label>Loket ${n}</label>
+        <input type="text" id="admin-nama-loket-${n}" value="${nama}" placeholder="Nama Loket ${n}" />
+      </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+/** Simpan konfigurasi dari admin */
+function simpanKonfigAdmin() {
+  const jml = parseInt(document.getElementById('admin-jumlah-loket').value) || 6;
+  if (jml < 1 || jml > 6) {
+    showToast('Jumlah loket harus 1–6!', 'bahaya');
+    return;
+  }
+  state.loketCount = jml;
+  for (let n = 1; n <= 6; n++) {
+    const el = document.getElementById('admin-nama-loket-' + n);
+    if (el) state.loketNames[n - 1] = el.value.trim() || ('Loket ' + n);
+  }
+  saveState(state);
+  broadcast('LOKET_STATUS', null); // Sinyal refresh
+  renderUI();
+  tutupModal('modal-admin-panel');
+  showToast('Konfigurasi berhasil disimpan ✅', 'sukses');
+}
+
+/** Reset antrian harian */
+function resetAntrian() {
+  if (!confirm('⚠️ Reset semua data antrian hari ini?\n\nData yang sudah ada TIDAK dapat dikembalikan.\n\nKetik OK untuk konfirmasi.')) return;
+  const baru = defaultState();
+  baru.loketCount  = state.loketCount;
+  baru.loketNames  = [...state.loketNames];
+  baru.loketStatus = { ...state.loketStatus };
+  state = baru;
+  saveState(state);
+  broadcast('LOKET_STATUS', null);
+  renderUI();
+  tutupModal('modal-admin-panel');
+  showToast('Antrian harian berhasil direset 🗑️', 'sukses');
+}
+
+/** Export data antrian ke CSV */
+function exportCSV() {
+  const header = ['id','nama','noPendaftaran','loket','namaLoket','timeIn','timeCalled','timeDone','status'];
+  const baris = state.queues.map(q => {
+    const loketNama = state.loketNames[q.loket - 1] || ('Loket ' + q.loket);
+    return [
+      q.id, q.name, q.regNumber, q.loket, loketNama,
+      q.timeIn || '', q.timeCalled || '', q.timeDone || '', q.status
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [header.join(','), ...baris].join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `antrian_spmb_${HARI_INI()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Data berhasil diekspor ke CSV 📥', 'sukses');
+}
+
+/* =====================================================
+   UTILITY MODAL
+   ===================================================== */
+function bukaModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('tampil');
+}
+function tutupModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('tampil');
+}
+// Tutup modal saat klik di luar
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) {
+    if (e.target === this) tutupModal(this.id);
+  });
+});
+
+/* =====================================================
+   TOAST NOTIFIKASI
+   ===================================================== */
+function showToast(pesan, tipe = '') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + tipe;
+  toast.textContent = pesan;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.4s';
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
+
+/* =====================================================
+   INISIALISASI & LOOP UPDATE
+   ===================================================== */
+
+// Jalankan jam dan update UI setiap detik
+setInterval(() => {
+  updateJamDisplay();
+  // Render display setiap detik untuk memperbarui timer blink 8 detik
+  if (halamanAktif === 'display') renderDisplay();
+  // Auto-reset jika hari berganti (cek setiap 1 detik)
+  if (state.date !== HARI_INI()) {
+    state = loadState();
+    renderUI();
+  }
+}, 1000);
+
+// Update UI setiap 5 detik (sinkronisasi antar komponen)
+setInterval(() => {
+  state = loadState();
+  renderUI();
+}, 5000);
+
+// Sinkronisasi via storage event (fallback untuk tab yang tidak mendukung BroadcastChannel)
+window.addEventListener('storage', (e) => {
+  if (e.key === STORAGE_KEY) {
+    state = loadState();
+    renderUI();
+  }
+});
+
+// Inisialisasi halaman saat DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  initRouting();
+  updateJamDisplay();
+  // Muat voices setelah interaksi pertama
+  setTimeout(muatVoices, 500);
+});
+
+</script>
+</body>
+</html>

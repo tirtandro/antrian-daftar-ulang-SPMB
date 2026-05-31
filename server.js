@@ -20,8 +20,18 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Helper Tanggal Bahasa Indonesia format ISO YYYY-MM-DD
-const HARI_INI = () => new Date().toISOString().slice(0, 10);
+// Helper untuk mendapatkan waktu dan tanggal dalam zona waktu Asia/Jakarta (WIB, GMT+7)
+const dapatkanWIB = () => {
+  const d = new Date();
+  // Tambahkan offset 7 jam (WIB) ke waktu UTC
+  const wibTime = new Date(d.getTime() + (7 * 60 * 60 * 1000));
+  return {
+    date: wibTime.toISOString().slice(0, 10), // YYYY-MM-DD
+    time: wibTime.toISOString().slice(11, 19)  // HH:MM:SS
+  };
+};
+
+const HARI_INI = () => dapatkanWIB().date;
 
 // State default jika file data kosong atau hari berganti
 function defaultState() {
@@ -191,8 +201,8 @@ io.on('connection', (socket) => {
     const nomorStr = String(globalState.counter).padStart(3, '0');
     const nomorId = `A-${nomorStr}`;
 
-    // Waktu masuk
-    const timeIn = new Date().toTimeString().slice(0, 8);
+    // Waktu masuk (WIB)
+    const timeIn = dapatkanWIB().time;
 
     // Buat objek antrian
     const queueObj = {
@@ -238,7 +248,7 @@ io.on('connection', (socket) => {
 
     // Update status antrian
     berikut.status = 'DIPANGGIL';
-    berikut.timeCalled = new Date().toTimeString().slice(0, 8);
+    berikut.timeCalled = dapatkanWIB().time;
     globalState.activeQueue[n] = berikut.id;
 
     saveStateToDisk();
@@ -273,7 +283,7 @@ io.on('connection', (socket) => {
     if (!aktif) return;
 
     aktif.status = 'SELESAI';
-    aktif.timeDone = new Date().toTimeString().slice(0, 8);
+    aktif.timeDone = dapatkanWIB().time;
     globalState.activeQueue[n] = null;
 
     saveStateToDisk();
@@ -290,7 +300,7 @@ io.on('connection', (socket) => {
     if (!aktif) return;
 
     aktif.status = 'SKIP';
-    aktif.timeDone = new Date().toTimeString().slice(0, 8);
+    aktif.timeDone = dapatkanWIB().time;
     globalState.activeQueue[n] = null;
 
     saveStateToDisk();

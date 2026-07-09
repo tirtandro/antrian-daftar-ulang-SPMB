@@ -1148,7 +1148,6 @@
         <div class="tiket-body">
           <div class="tiket-nomor-label">NOMOR ANTRIAN</div>
           <div class="tiket-nomor" id="tiket-nomor">—</div>
-          <div class="tiket-loket-badge" id="tiket-loket-badge">LOKET —</div>
           <div class="tiket-info-row">
             <span class="label">Nama</span>
             <span class="nilai" id="tiket-nama">—</span>
@@ -1158,11 +1157,7 @@
             <span class="nilai" id="tiket-nopend">—</span>
           </div>
           <div class="tiket-info-row">
-            <span class="label">Loket Tujuan</span>
-            <span class="nilai" id="tiket-loket-nama">—</span>
-          </div>
-          <div class="tiket-info-row">
-            <span class="label">Waktu</span>
+            <span class="label">Waktu Ambil</span>
             <span class="nilai" id="tiket-waktu">—</span>
           </div>
           <div class="tiket-info-row">
@@ -1171,7 +1166,7 @@
           </div>
         </div>
         <div class="tiket-footer" id="tiket-footer">
-          Silakan menuju area tunggu —
+          Silakan menuju ruang tunggu —
         </div>
       </div>
       <!-- Penjelasan Alokasi Loket (Load Balancing Info) -->
@@ -1254,7 +1249,7 @@
     <div class="panel-info">
       <h4>📊 Statistik Loket Ini</h4>
       <div class="info-stat">
-        <span>Menunggu di loket ini</span>
+        <span>Total Menunggu (Global)</span>
         <span class="angka" id="p-menunggu">0</span>
       </div>
       <div class="info-stat">
@@ -1278,7 +1273,7 @@
 
     <!-- Tabel antrian loket ini -->
     <div class="panel-antrian">
-      <h4>📃 Antrian Loket Ini</h4>
+      <h4>📃 Antrean Menunggu & Riwayat Pelayanan</h4>
       <div id="tabel-antrian-wrap">
         <table class="tabel-antrian">
           <thead>
@@ -1607,18 +1602,12 @@ socket.on('ambil-antrian-success', (data) => {
 
 /** Tampilkan tiket di layar */
 function tampilkanTiket(q, estimasi, penjelasTeks) {
-  // ★ SUMBER TUNGGAL: loket diambil langsung dari q.loket
-  //   badge tiket + highlight grid + teks penjelasan semuanya dari nilai yang sama
-  const loketNama = state.loketNames[q.loket - 1] || ('Loket ' + q.loket);
-
   document.getElementById('tiket-nomor').textContent   = q.id;
   document.getElementById('tiket-nama').textContent    = q.name;
   document.getElementById('tiket-nopend').textContent  = q.regNumber;
-  document.getElementById('tiket-loket-badge').textContent = loketNama.toUpperCase();
-  document.getElementById('tiket-loket-nama').textContent  = loketNama;
   document.getElementById('tiket-waktu').textContent   = jamSekarang();
   document.getElementById('tiket-estimasi').textContent = estimasi + ' orang di depan Anda';
-  document.getElementById('tiket-footer').textContent  = `Silakan menuju area tunggu ${loketNama}`;
+  document.getElementById('tiket-footer').textContent  = `Silakan menunggu panggilan di ruang tunggu`;
 
   // Sembunyikan form, tampilkan tiket
   document.getElementById('area-form').style.display = 'none';
@@ -1630,10 +1619,7 @@ function tampilkanTiket(q, estimasi, penjelasTeks) {
     document.getElementById('info-alokasi-teks').innerHTML = penjelasTeks;
   }
 
-  // ★ ATOMIK: set currentTicketLoket dari q.loket yang sama dengan badge di atas
-  currentTicketLoket = q.loket;
-
-  // ★ Render grid distribusi SETELAH badge diset — dijamin sinkron
+  // Sederhanakan render stat loket
   renderStatLoket();
 
   // Siapkan cetak (salin elemen dan hapus ID untuk menghindari duplikasi DOM)
@@ -1662,7 +1648,6 @@ function resetForm() {
     cetakTkt.innerHTML = '';
   }
 
-  currentTicketLoket = null;
   renderStatLoket();
 }
 
@@ -1679,32 +1664,36 @@ function renderStatLoket() {
   for (let n = 1; n <= state.loketCount; n++) {
     const status = state.loketStatus[n] || 'SIAP';
     const nama   = state.loketNames[n - 1] || ('Loket ' + n);
-    const menunggu = state.queues.filter(q =>
-      q.loket === n && (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL')
-    ).length;
+    const aktifId  = state.activeQueue[n];
     const istirahat = status === 'ISTIRAHAT';
     
-    // Cek apakah loket ini adalah loket tujuan tiket yang baru diambil
-    const isTarget = (halamanAktif === 'ambil' && currentTicketLoket === n);
-    const targetClass = isTarget ? 'target-loket' : '';
+    let infoPelayanan = 'KOSONG';
+    if (istirahat) {
+      infoPelayanan = 'NON-AKTIF';
+    } else if (aktifId) {
+      infoPelayanan = `Melayani: <strong>${aktifId}</strong>`;
+    }
     
     html += `
-      <div class="stat-loket-card ${istirahat ? 'istirahat' : ''} ${targetClass}">
+      <div class="stat-loket-card ${istirahat ? 'istirahat' : ''}">
         <div class="nama">
           ${nama} 
           ${istirahat ? '<span class="badge-istirahat">ISTIRAHAT</span>' : ''}
-          ${isTarget ? '<span class="badge-target">LOKET ANDA</span>' : ''}
         </div>
-        <div class="jumlah">${istirahat ? '–' : menunggu}</div>
-        <div class="satuan">${istirahat ? 'tidak aktif' : (isTarget ? 'menunggu (termasuk Anda)' : 'menunggu')}</div>
+        <div class="jumlah" style="font-size: 18px; margin: 8px 0;">${istirahat ? '–' : (aktifId ? aktifId : 'KOSONG')}</div>
+        <div class="satuan">${istirahat ? 'tidak aktif' : (aktifId ? 'sedang melayani' : 'siap melayani')}</div>
       </div>`;
   }
   grid.innerHTML = html;
 
-  // Total selesai
+  // Tampilkan total menunggu global dan total selesai
+  const totalMenungguGlobal = state.queues.filter(q => q.status === 'MENUNGGU').length;
   const selesai = state.queues.filter(q => q.status === 'SELESAI').length;
+  
   const el = document.getElementById('stat-total-selesai');
-  if (el) el.textContent = selesai;
+  if (el) {
+    el.innerHTML = `${selesai} orang &nbsp;|&nbsp; Sedang menunggu: <strong>${totalMenungguGlobal}</strong> orang`;
+  }
 }
 
 /* =====================================================
@@ -1754,14 +1743,21 @@ function renderPetugas() {
   btnToggle.textContent = status;
   btnToggle.className   = 'btn-toggle-siap ' + (status === 'ISTIRAHAT' ? 'istirahat' : 'siap');
 
-  // Antrian loket ini
-  const antrianLoket = state.queues.filter(q => q.loket === n);
-  const menunggu     = antrianLoket.filter(q => q.status === 'MENUNGGU');
-  const dipanggil    = antrianLoket.filter(q => q.status === 'DIPANGGIL');
-  const selesai      = antrianLoket.filter(q => q.status === 'SELESAI' || q.status === 'SKIP');
+  // Antrian loket ini (untuk riwayat panggilan loket bersangkutan)
+  const riwayatLoket = state.queues.filter(q => q.loket === n && q.status !== 'MENUNGGU');
+  
+  // Antrian global yang berstatus MENUNGGU
+  const menungguGlobal = state.queues.filter(q => q.status === 'MENUNGGU');
+  
+  // Ambil antrian aktif (sedang dipanggil di loket ini)
+  const aktif = state.queues.find(q => q.loket === n && q.status === 'DIPANGGIL');
 
-  // Cek yang sedang dipanggil/dilayani di loket ini
-  const aktif = dipanggil[0] || null;
+  // Gabungkan antrean menunggu secara global dan riwayat pelayanan khusus loket ini untuk ditampilkan di tabel
+  // Urutkan: antrean MENUNGGU di atas (urutan nomor terkecil), lalu riwayat loket di bawah (urutan waktu dipanggil terbaru)
+  const antrianTabel = [
+    ...menungguGlobal,
+    ...riwayatLoket.sort((a, b) => (b.timeCalled || '').localeCompare(a.timeCalled || ''))
+  ];
 
   // Panel sedang dilayani
   const panelKonten = document.getElementById('panel-aktif-konten');
@@ -1777,11 +1773,11 @@ function renderPetugas() {
 
   // Tombol PANGGIL BERIKUTNYA
   const btnPanggil = document.getElementById('btn-panggil');
-  const adaDipanggil = dipanggil.length > 0;
-  const antrianKosong = menunggu.length === 0;
+  const adaDipanggil = !!aktif;
+  const antrianKosong = menungguGlobal.length === 0;
   btnPanggil.disabled = adaDipanggil || antrianKosong || status === 'ISTIRAHAT';
   if (antrianKosong && !adaDipanggil) {
-    btnPanggil.innerHTML = '📭 Antrean<br>Loket Kosong';
+    btnPanggil.innerHTML = '📭 Antrean<br>Kosong';
   } else {
     btnPanggil.innerHTML = '📢 PANGGIL<br>BERIKUTNYA';
   }
@@ -1793,8 +1789,8 @@ function renderPetugas() {
   btnLewati.disabled  = !aktif;
 
   // Statistik loket ini
-  document.getElementById('p-menunggu').textContent = menunggu.length;
-  document.getElementById('p-selesai').textContent  = selesai.length;
+  document.getElementById('p-menunggu').textContent = menungguGlobal.length;
+  document.getElementById('p-selesai').textContent  = riwayatLoket.filter(q => q.status === 'SELESAI').length;
 
   // Statistik global
   const totalAntrian = state.queues.length;
@@ -1802,12 +1798,12 @@ function renderPetugas() {
   document.getElementById('p-total-antrian').textContent = totalAntrian;
   document.getElementById('p-total-selesai').textContent = totalSelesai;
 
-  // Tabel antrian loket ini
+  // Tabel antrian loket ini (menampilkan antrean menunggu global + riwayat loket ini)
   const tbody = document.getElementById('tbody-antrian');
-  if (antrianLoket.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--teks-lt);padding:20px">Antrean loket ini kosong</td></tr>';
+  if (antrianTabel.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--teks-lt);padding:20px">Antrean kosong</td></tr>';
   } else {
-    tbody.innerHTML = antrianLoket.map(q => `
+    tbody.innerHTML = antrianTabel.map(q => `
       <tr class="${q.status === 'DIPANGGIL' ? 'aktif-row' : ''}">
         <td><strong>${q.id}</strong></td>
         <td>${q.name}</td>
@@ -1824,9 +1820,9 @@ function renderPetugas() {
 /** Panggil peserta berikutnya di loket ini */
 function panggilBerikutnya() {
   const n = loketDipilih;
-  const berikut = state.queues.find(q => q.loket === n && q.status === 'MENUNGGU');
+  const berikut = state.queues.find(q => q.status === 'MENUNGGU');
   if (!berikut) {
-    showToast('Tidak ada antrian yang menunggu di loket ini.', 'bahaya');
+    showToast('Tidak ada antrian yang sedang menunggu saat ini.', 'bahaya');
     return;
   }
   socket.emit('panggil-antrian', { loketNum: n });

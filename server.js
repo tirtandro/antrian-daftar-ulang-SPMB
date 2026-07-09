@@ -110,57 +110,6 @@ function checkAndResetNewDay() {
 // Menyajikan file statis dari direktori public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Algoritma Load Balancing Loket
-function assignLoket() {
-  // Filter loket yang aktif (tidak istirahat)
-  const activeLokets = [];
-  for (let n = 1; n <= globalState.loketCount; n++) {
-    const status = globalState.loketStatus[n] || 'SIAP';
-    if (status !== 'ISTIRAHAT') {
-      activeLokets.push(n);
-    }
-  }
-
-  if (activeLokets.length === 0) {
-    return null; // Semua loket sedang istirahat
-  }
-
-  // Hitung beban per loket (status MENUNGGU atau DIPANGGIL)
-  const loads = {};
-  activeLokets.forEach(n => {
-    loads[n] = 0;
-  });
-
-  globalState.queues.forEach(q => {
-    if (
-      (q.status === 'MENUNGGU' || q.status === 'DIPANGGIL') &&
-      loads[q.loket] !== undefined
-    ) {
-      loads[q.loket]++;
-    }
-  });
-
-  // Cari beban terkecil
-  let minLoad = Infinity;
-  activeLokets.forEach(n => {
-    if (loads[n] < minLoad) {
-      minLoad = loads[n];
-    }
-  });
-
-  // Kumpulkan loket dengan beban terkecil
-  const minLoadLokets = activeLokets.filter(n => loads[n] === minLoad);
-
-  // Pilih loket dengan nomor terkecil dari yang beban kerjanya seimbang
-  const loketNum = minLoadLokets[0];
-
-  return {
-    loketNum,
-    minLoad,
-    minLoadLokets
-  };
-}
-
 // Koneksi WebSocket
 io.on('connection', (socket) => {
   console.log('[Antrian Server] Client terhubung:', socket.id);
@@ -175,26 +124,21 @@ io.on('connection', (socket) => {
     
     if (!name) return;
 
-    const assignment = assignLoket();
-    if (!assignment) {
-      socket.emit('ambil-antrian-error', { message: 'Semua loket sedang istirahat. Silakan tunggu.' });
+    // Cek apakah ada loket aktif (tidak istirahat) untuk menerima panggilan nanti
+    const activeLokets = [];
+    for (let n = 1; n <= globalState.loketCount; n++) {
+      const status = globalState.loketStatus[n] || 'SIAP';
+      if (status !== 'ISTIRAHAT') {
+        activeLokets.push(n);
+      }
+    }
+
+    if (activeLokets.length === 0) {
+      socket.emit('ambil-antrian-error', { message: 'Semua loket sedang istirahat. Silakan hubungi petugas.' });
       return;
     }
 
-    const { loketNum, minLoad, minLoadLokets } = assignment;
-    const loketNama = globalState.loketNames[loketNum - 1] || ('Loket ' + loketNum);
-
-    // Hitung penjelasan load balancing
-    let penjelasTeks = '';
-    if (minLoadLokets.length > 1) {
-      if (minLoad === 0) {
-        penjelasTeks = `Sistem load balancing mendeteksi ada beberapa loket kosong (${minLoadLokets.map(n => globalState.loketNames[n - 1] || 'Loket ' + n).join(', ')}). Anda diarahkan ke loket kosong bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
-      } else {
-        penjelasTeks = `Sistem load balancing mendeteksi beban loket aktif saat ini seimbang (masing-masing memiliki ${minLoad} antrean). Anda diarahkan ke loket aktif bernomor terkecil, yaitu <strong>${loketNama}</strong>.`;
-      }
-    } else {
-      penjelasTeks = `Sistem load balancing mendeteksi <strong>${loketNama}</strong> memiliki jumlah beban antrean paling sedikit saat ini (${minLoad} antrean). Anda otomatis dialokasikan ke loket tersebut.`;
-    }
+    const penjelasTeks = `Sistem antrean menggunakan model terpusat (single queue). Anda akan dipanggil ke loket/meja yang kosong sesuai dengan urutan nomor antrean Anda.`;
 
     // Generate ID nomor antrian
     globalState.counter++;
@@ -204,12 +148,12 @@ io.on('connection', (socket) => {
     // Waktu masuk (WIB)
     const timeIn = dapatkanWIB().time;
 
-    // Buat objek antrian
+    // Buat objek antrian (loket diset null karena belum dipanggil ke loket tertentu)
     const queueObj = {
       id: nomorId,
       name: name,
       regNumber: regNumber || '-',
-      loket: loketNum,
+      loket: null,
       status: 'MENUNGGU',
       timeIn: timeIn,
       timeCalled: null,
@@ -219,9 +163,9 @@ io.on('connection', (socket) => {
     // Tambah ke queue list
     globalState.queues.push(queueObj);
     
-    // Hitung estimasi orang di depan
+    // Hitung estimasi orang di depan secara global (semua antrean berstatus MENUNGGU)
     const estimasi = globalState.queues.filter(q => 
-      q.loket === loketNum && q.status === 'MENUNGGU' && q.id !== nomorId
+      q.status === 'MENUNGGU' && q.id !== nomorId
     ).length;
 
     saveStateToDisk();
@@ -239,15 +183,16 @@ io.on('connection', (socket) => {
     const { loketNum } = data;
     const n = parseInt(loketNum);
 
-    // Cari antrian MENUNGGU terdepan di loket ini
-    const berikut = globalState.queues.find(q => q.loket === n && q.status === 'MENUNGGU');
+    // Cari antrian MENUNGGU terdepan (global)
+    const berikut = globalState.queues.find(q => q.status === 'MENUNGGU');
     if (!berikut) {
-      socket.emit('panggil-antrian-error', { message: 'Tidak ada antrian yang menunggu di loket ini.' });
+      socket.emit('panggil-antrian-error', { message: 'Tidak ada antrian yang sedang menunggu saat ini.' });
       return;
     }
 
-    // Update status antrian
+    // Update status antrian dan alokasikan ke loket pemanggil
     berikut.status = 'DIPANGGIL';
+    berikut.loket = n;
     berikut.timeCalled = dapatkanWIB().time;
     globalState.activeQueue[n] = berikut.id;
 
